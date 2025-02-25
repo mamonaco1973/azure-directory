@@ -27,3 +27,41 @@ resource "azurerm_subnet" "bastion_subnet" {
   address_prefixes     = ["10.0.1.0/25"]                      # IP range for the subnet
 }
 
+# Define a network security group (NSG) for controlling traffic
+resource "azurerm_network_security_group" "vm_nsg" {
+  name                = "vm-nsg"                           # Name of the NSG
+  location            = azurerm_resource_group.ad.location # NSG location matches the resource group
+  resource_group_name = azurerm_resource_group.ad.name     # Links to the resource group
+
+  # Security rule to allow SSH traffic
+  security_rule {
+    name                       = "Allow-SSH"            # Rule name
+    priority                   = 1001                   # Priority of the rule
+    direction                  = "Inbound"              # Inbound traffic
+    access                     = "Allow"                # Allow traffic
+    protocol                   = "Tcp"                  # TCP protocol
+    source_port_range          = "*"                    # Any source port
+    destination_port_range     = "22"                   # Destination port for SSH
+    source_address_prefix      = "*"                    # Allow traffic from all IPs
+    destination_address_prefix = "*"                    # Applies to all destinations
+  }
+  
+  # Security rule to allo RDP traffic
+  security_rule {
+    name                       = "Allow-RDP"             # Rule name
+    priority                   = 1002                    # Priority of the rule
+    direction                  = "Inbound"               # Inbound traffic
+    access                     = "Allow"                 # Allow traffic
+    protocol                   = "Tcp"                   # TCP protocol
+    source_port_range          = "*"                     # Any source port
+    destination_port_range     = "3389"                 # Destination port for HTTP
+    source_address_prefix      = "*"                     # Allow traffic from all IPs
+    destination_address_prefix = "*"                     # Applies to all destinations
+  }
+}
+
+# Associate NSG with Application Gateway subnet
+resource "azurerm_subnet_network_security_group_association" "vm-nsg-assoc" {
+  subnet_id                 = azurerm_subnet.vm_subnet.id
+  network_security_group_id = azurerm_network_security_group.vm_nsg.id
+}

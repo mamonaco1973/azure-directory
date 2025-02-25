@@ -5,11 +5,19 @@ resource "random_password" "admin_password" {
   override_special   = "!@#$%" # Limit special characters to this set
 }
 
+# Generate a random alphanumeric string for the join credentials
+
+resource "random_string" "unique_id_string" {
+  length  = 6
+  special = false
+  upper   = false
+}
+
 # Create a Key Vault secret for the AD Admin credentials
 resource "azurerm_key_vault_secret" "admin_secret" {
   name         = "admin-ad-credentials"
   value        = jsonencode({
-    username = "MCLOUD\\mcloudAdmin"
+    username = "mcloudAdmin${random_string.unique_id_string.result}@${var.azure_domain}"
     password = random_password.admin_password.result
   })
   key_vault_id = azurerm_key_vault.ad_key_vault.id

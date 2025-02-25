@@ -16,7 +16,7 @@ resource "azuread_group" "dc_admins" {
 # }
 
 resource "azuread_user" "dc_admin" {
-  user_principal_name = "mcloudAdmin@mamonaco1973gmail.onmicrosoft.com"
+  user_principal_name = "mcloudAdmin${random_string.unique_id_string.result}@${var.azure_domain}"
   display_name        = "MCLOUD DC Administrator"
   password            = random_password.admin_password.result
 }
@@ -84,4 +84,10 @@ resource "azurerm_active_directory_domain_service" "aadds" {
   depends_on = [
     azurerm_subnet_network_security_group_association.aadds
   ]
+}
+
+# Update the DNS servers for the existing VNet
+resource "azurerm_virtual_network_dns_servers" "example" {
+  virtual_network_id = azurerm_virtual_network.ad_vnet.id
+  dns_servers        = azurerm_active_directory_domain_service.aadds.initial_replica_set[0].domain_controller_ip_addresses
 }

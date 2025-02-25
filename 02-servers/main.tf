@@ -23,24 +23,26 @@ variable "resource_group_name" {
   default     = "ad-resource-group"
 }
 
-variable "resource_group_location" {
-  description = "The Azure region where the resource group will be created"
+# VAULT_NAME=$(az keyvault list --resource-group ad-resource-group --query "[?starts_with(name, 'ad-key-vault')].name | [0]" --output tsv)
+
+variable "vault_name" {
+  description = "The name of the secrets vault"
   type        = string
-  default     = "Central US"
+#  default     = "ad-key-vault-qcxu2ksw"
 }
 
-# Define a resource group for all resources
-resource "azurerm_resource_group" "ad" {
-  name     = var.resource_group_name  # Name of the resource group from variable
-  location = var.resource_group_location  # Location from variable
+data "azurerm_resource_group" "ad" {
+  name = var.resource_group_name
 }
 
-# Fetch from this cli and set the value 
-# PRIMARY_DOMAIN=$(az rest --method get --url "https://graph.microsoft.com/v1.0/domains" --query "value[?isDefault].id" --output tsv)
-
-variable "azure_domain" {
-  description = "The default Azure AD domain"
-#  default     = "mamonaco1973gmail.onmicrosoft.com"
+data "azurerm_subnet" "vm_subnet" {
+  name                 = "vm-subnet"
+  resource_group_name  = data.azurerm_resource_group.ad.name
+  virtual_network_name = "ad-vnet"
 }
 
 
+data "azurerm_key_vault" "ad_key_vault" {
+  name                = var.vault_name
+  resource_group_name = var.resource_group_name
+}
