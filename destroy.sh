@@ -1,7 +1,7 @@
 
 #!/bin/bash
 
-cd 00-servers
+cd 02-servers
 
 vault=$(az keyvault list --resource-group ad-resource-group --query "[?starts_with(name, 'ad-key-vault')].name | [0]" --output tsv)
 echo $vault
