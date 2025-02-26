@@ -19,6 +19,7 @@ resource "azuread_user" "dc_admin" {
   user_principal_name = "mcloudAdmin${random_string.unique_id_string.result}@${var.azure_domain}"
   display_name        = "MCLOUD DC Administrator"
   password            = random_password.admin_password.result
+  depends_on          = [ azurerm_active_directory_domain_service.aadds ]
 }
 
 resource "azurerm_network_security_group" "aadds" {
