@@ -39,3 +39,45 @@ resource "random_string" "storage_name" {
   special = false
   numeric = true
 }
+
+data "azurerm_storage_account_sas" "script_sas" {
+  connection_string = azurerm_storage_account.scripts_storage.primary_connection_string
+
+  resource_types {
+    service   = false
+    container = false
+    object    = true
+  }
+
+  services {
+    blob   = true
+    queue  = false
+    table  = false
+    file   = false
+  }
+
+  start  = formatdate("YYYY-MM-DD'T'HH:mm:ss'Z'", timestamp())
+  expiry = formatdate("YYYY-MM-DD'T'HH:mm:ss'Z'", timeadd(timestamp(), "24h"))
+
+  permissions {
+    read    = true
+    write   = false
+    delete  = false
+    list    = false
+    add     = false
+    create  = false
+    update  = false
+    process = false
+    filter  = false
+    tag     = false
+  }
+}
+
+
+#output "ad_join_script_url" {
+#  description = "The URL to the AD Join script including SAS token"
+#  value = "https://${azurerm_storage_account.scripts_storage.name}.blob.core.windows.net/${azurerm_storage_container.scripts.name}/${azurerm_storage_blob.ad_join_script.name}${data.azurerm_storage_account_sas.script_sas.sas}"
+
+#  value       = "https://${azurerm_storage_account.scripts_storage.name}.blob.core.windows.net/${azurerm_storage_container.scripts.name}/${azurerm_storage_blob.ad_join_script.name}?${data.azurerm_storage_account_sas.script_sas.sas}"
+#  sensitive = true
+#}
