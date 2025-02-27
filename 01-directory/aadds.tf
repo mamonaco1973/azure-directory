@@ -6,7 +6,7 @@
 resource "azuread_group" "dc_admins" {
   display_name     = "AAD DC Administrators"
   description      = "AADDS Administrators"
-  members          = [azuread_user.dc_admin.object_id]
+  members          = [azuread_user.mcloud_admin.object_id]
   security_enabled = true
 }
 
@@ -15,9 +15,9 @@ resource "azuread_group" "dc_admins" {
 #   client_id = "2565bd9d-da50-47d4-8b85-4c97f669dc36" 
 # }
 
-resource "azuread_user" "dc_admin" {
-  user_principal_name = "mcloudAdmin${random_string.unique_id_string.result}@${var.azure_domain}"
-  display_name        = "MCLOUD DC Administrator"
+resource "azuread_user" "mcloud_admin" {
+  user_principal_name = "mcloud-admin@${var.azure_domain}"
+  display_name        = "mcloud-admin"
   password            = random_password.admin_password.result
   depends_on          = [ azurerm_active_directory_domain_service.aadds ]
 }
@@ -71,7 +71,7 @@ resource "azurerm_active_directory_domain_service" "aadds" {
   }
 
   notifications {
-    additional_recipients = ["Admin@mikecloud.com"]
+    additional_recipients = ["mcloud-admin@${var.azure_domain}"]
     notify_dc_admins      = true
     notify_global_admins  = true
   }
@@ -88,7 +88,7 @@ resource "azurerm_active_directory_domain_service" "aadds" {
 }
 
 # Update the DNS servers for the existing VNet
-resource "azurerm_virtual_network_dns_servers" "example" {
+resource "azurerm_virtual_network_dns_servers" "aadds_dns_servers" {
   virtual_network_id = azurerm_virtual_network.ad_vnet.id
   dns_servers        = azurerm_active_directory_domain_service.aadds.initial_replica_set[0].domain_controller_ip_addresses
 }
