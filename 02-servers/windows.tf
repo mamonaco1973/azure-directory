@@ -59,7 +59,7 @@ resource "azurerm_windows_virtual_machine" "windows_ad_instance" {
 
   # Inject variables into the PowerShell script before encoding 
   custom_data = base64encode(templatefile("scripts/custom_data.ps1.tmpl", {
-      vault_name  = data.azurerm_key_vault.name
+      vault_name  = data.azurerm_key_vault.ad_key_vault.name
       domain_fqdn = "mcloud.mikecloud.com"
 }))
 }
