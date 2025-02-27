@@ -20,6 +20,7 @@ cd 02-servers
 vault=$(az keyvault list --resource-group ad-resource-group --query "[?starts_with(name, 'ad-key-vault')].name | [0]" --output tsv)
 echo $vault
 terraform init
+terraform destroy -var="vault_name=$vault" -auto-approve
 terraform apply -var="vault_name=$vault" -auto-approve
 
 cd ..
