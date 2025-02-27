@@ -1,7 +1,7 @@
 resource "azurerm_storage_account" "scripts_storage" {
   name                     = "vmscripts${random_string.storage_name.result}"
-  resource_group_name      = azurerm_resource_group.rg.name
-  location                 = azurerm_resource_group.rg.location
+  resource_group_name      = data.azurerm_resource_group.ad.name
+  location                 = data.azurerm_resource_group.ad.location
   account_tier             = "Standard"
   account_replication_type = "LRS"
 }
@@ -31,4 +31,11 @@ resource "azurerm_storage_blob" "ad_join_script" {
   storage_container_name = azurerm_storage_container.scripts.name
   type                   = "Block"
   source                 = local_file.ad_join_rendered.filename
+}
+
+resource "random_string" "storage_name" {
+  length  = 12
+  upper   = false
+  special = false
+  numeric = true
 }
