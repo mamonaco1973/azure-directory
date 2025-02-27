@@ -10,6 +10,14 @@ resource "azuread_group" "dc_admins" {
   security_enabled = true
 }
 
+
+resource "azuread_group" "domain_admins" {
+  display_name     = "Domain Admins"
+  description      = "Domain Admins"
+  members          = [azuread_user.mcloud_admin.object_id]
+  security_enabled = true
+}
+
 # Put this in the build script - az ad sp create --id "2565bd9d-da50-47d4-8b85-4c97f669dc36"
 # resource "azuread_service_principal" "aadds" {
 #   client_id = "2565bd9d-da50-47d4-8b85-4c97f669dc36" 
