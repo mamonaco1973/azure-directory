@@ -56,9 +56,9 @@ resource "azurerm_windows_virtual_machine" "windows_ad_instance" {
 
   # Enable Remote Desktop Protocol (RDP)
   enable_automatic_updates = true
-
+   
   # Inject variables into the PowerShell script before encoding 
-  custom_data = base64encode(templatefile("scripts/custom_data.ps1", {
+  user_data = base64encode(templatefile("scripts/custom_data.ps1", {
       vault_name  = data.azurerm_key_vault.ad_key_vault.name
       domain_fqdn = "mcloud.mikecloud.com"
 }))

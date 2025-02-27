@@ -22,11 +22,11 @@ Remove-Item .\AzureCLI.msi
 # Join instance to active directory
 # ------------------------------------------------------------
 
-$secretJson = az keyvault secret show --name admin-ad-credentials --vault-name {{vault_name}} --query value -o tsv
+$secretJson = az keyvault secret show --name admin-ad-credentials --vault-name ${vault_name} --query value -o tsv
 $secretObject = $secretJson | ConvertFrom-Json
 $password = $secretObject.password | ConvertTo-SecureString -AsPlainText -Force
 $cred = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $secretObject.username, $password
 
 # Join the EC2 instance to the Active Directory domain
-Add-Computer -DomainName "{{domain_fqdn}}" -Credential $cred 
+Add-Computer -DomainName "${domain_fqdn}" -Credential $cred 
 
