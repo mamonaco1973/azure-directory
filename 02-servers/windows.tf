@@ -54,4 +54,21 @@ resource "azurerm_windows_virtual_machine" "windows_ad_instance" {
   # Optionally, enable automatic Windows updates
   patch_mode = "AutomaticByOS"
   enable_automatic_updates = true
+
+  identity {
+    type = "SystemAssigned"
+  }
+
+}
+
+
+resource "azurerm_key_vault_access_policy" "vm_key_vault_policy" {
+  key_vault_id = data.azurerm_key_vault.ad_key_vault.id
+  tenant_id    = data.azurerm_client_config.current.tenant_id
+  object_id    = azurerm_windows_virtual_machine.windows_ad_instance.identity[0].principal_id
+
+  secret_permissions = [
+    "Get",
+    "List"
+  ]
 }
