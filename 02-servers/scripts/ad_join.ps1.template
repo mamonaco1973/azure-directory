@@ -14,9 +14,10 @@ Install-WindowsFeature -Name GPMC,RSAT-AD-PowerShell,RSAT-AD-AdminCenter,RSAT-AD
 # Install AZ CLI
 # ------------------------------------------------------------
 
-Invoke-WebRequest -Uri https://azcliprod.blob.core.windows.net/msi/azure-cli-2.51.0.msi -OutFile .\AzureCLI.msi
+Invoke-WebRequest -Uri https://aka.ms/installazurecliwindowsx64 -OutFile .\AzureCLI.msi
 Start-Process msiexec.exe -Wait -ArgumentList '/I AzureCLI.msi /quiet'
 Remove-Item .\AzureCLI.msi
+$env:Path += ";C:\Program Files\Microsoft SDKs\Azure\CLI2\wbin"
 
 # ------------------------------------------------------------
 # Join instance to active directory
