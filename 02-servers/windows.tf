@@ -61,20 +61,9 @@ resource "azurerm_windows_virtual_machine" "windows_ad_instance" {
 
 }
 
-
-resource "azurerm_key_vault_access_policy" "vm_key_vault_access" {
-  key_vault_id = data.azurerm_key_vault.ad_key_vault.id
-
-  tenant_id = data.azurerm_client_config.current.tenant_id
-  object_id = azurerm_windows_virtual_machine.windows_ad_instance.identity[0].principal_id
-
-  secret_permissions = [
-   "Get", "List"  # Grant permissions to read and list secrets
-  ]
-
-# Explicitly depend on the VM resource
-  depends_on = [
-    azurerm_windows_virtual_machine.windows_ad_instance
-  ]
-
+# Assign the "Key Vault Secrets User" role to the VM's managed identity
+resource "azurerm_role_assignment" "vm_key_vault_secrets_user" {
+  scope                = data.azurerm_key_vault.ad_key_vault.id
+  role_definition_name = "Key Vault Secrets User"
+  principal_id         = azurerm_windows_virtual_machine.windows_ad_instance.identity[0].principal_id
 }
