@@ -29,5 +29,11 @@ $password = $secretObject.password | ConvertTo-SecureString -AsPlainText -Force
 $cred = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $secretObject.username, $password
 
 # Join the EC2 instance to the Active Directory domain
-Add-Computer -DomainName "${domain_fqdn}" -Credential $cred 
+Add-Computer -DomainName "${domain_fqdn}" -Credential $cred -Force
 
+# ------------------------------------------------------------
+# Final Reboot to Apply Changes
+# ------------------------------------------------------------
+
+# Reboot the server to finalize the domain join and group policies
+shutdown /r /t 5 /c "Initial reboot to join domain" /f /d p:4:1
