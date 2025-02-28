@@ -90,3 +90,18 @@ resource "azurerm_role_assignment" "vm_win_key_vault_secrets_user" {
   role_definition_name = "Key Vault Secrets User"
   principal_id         = azurerm_windows_virtual_machine.windows_ad_instance.identity[0].principal_id
 }
+
+resource "azurerm_virtual_machine_extension" "join_script" {
+  name                 = "customScript"
+  virtual_machine_id   = azurerm_windows_virtual_machine.windows_ad_instance.id
+  publisher            = "Microsoft.Compute"
+  type                 = "CustomScriptExtension"
+  type_handler_version = "1.10"
+
+  settings = <<SETTINGS
+  {
+    "fileUris": ["https://${azurerm_storage_account.scripts_storage.name}.blob.core.windows.net/${azurerm_storage_container.scripts.name}/${azurerm_storage_blob.ad_join_script.name}?${data.azurerm_storage_account_sas.script_sas.sas}"],
+    "commandToExecute": "powershell.exe -ExecutionPolicy Unrestricted -File ad-join.ps1"
+   }
+  SETTINGS
+}
