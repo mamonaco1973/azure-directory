@@ -42,7 +42,7 @@ resource "azurerm_public_ip" "linux_vm_ip" {
   resource_group_name = data.azurerm_resource_group.ad.name     # Links to the resource group
   allocation_method   = "Dynamic"                               # Dynamically assign public IP
   sku                 = "Basic"                                 # Use basic SKU
-  domain_name_label   = "linux-vm-{${random_string.vm_suffix.result}"
+  domain_name_label   = "linux-vm-${random_string.vm_suffix.result}"
   # Unique domain label for the public IP
 }
 
@@ -85,6 +85,8 @@ resource "azurerm_linux_virtual_machine" "linux_ad_instance" {
   identity {
     type = "SystemAssigned"
   }
+
+  depends_on = [ azurerm_windows_virtual_machine.windows_ad_instance ]
 }
 
 

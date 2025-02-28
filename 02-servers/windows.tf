@@ -49,7 +49,7 @@ resource "azurerm_public_ip" "windows_vm_ip" {
   resource_group_name = data.azurerm_resource_group.ad.name      # Links to the resource group
   allocation_method   = "Dynamic"                                # Dynamically assign public IP
   sku                 = "Basic"                                  # Use basic SKU
-  domain_name_label   = "window-vm-{${random_string.vm_suffix.result}"
+  domain_name_label   = "window-vm-${random_string.vm_suffix.result}"
                                                                  # Unique domain label for the public IP
 }
 
