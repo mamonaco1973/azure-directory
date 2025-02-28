@@ -38,9 +38,35 @@ $secretObject = $secretJson | ConvertFrom-Json
 $password = $secretObject.password | ConvertTo-SecureString -AsPlainText -Force
 $cred = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $secretObject.username, $password
 
-# Join the EC2 instance to the Active Directory domain
-Add-Computer -DomainName "${domain_fqdn}" -Credential $cred -Force
+$retryCount = 0
+$maxRetries = 6
+$waitTime = 600 # 600 seconds = 10 minutes
 
+# ------------------------------------------------------------
+# Since we build the VM instance immediately after creating
+# the active directory domain services it possible that the 
+# user sync hasn't happened yet. This loop keeps trying until
+# the join user is valid.
+# ------------------------------------------------------------
+
+while ($retryCount -lt $maxRetries) {
+    try {
+        Add-Computer -DomainName "${domain_fqdn}" -Credential $cred -Force -ErrorAction Stop
+        Write-Output "Successfully joined the domain."
+        break # Exit the loop if successful
+    } catch {
+        $retryCount++
+        Write-Output "Failed to join domain. Attempt $retryCount of $maxRetries."
+
+        if ($retryCount -lt $maxRetries) {
+            Write-Output "Waiting for $waitTime seconds before retrying..."
+            Start-Sleep -Seconds $waitTime
+        } else {
+            Write-Output "Max retries reached. Failing the script."
+            exit 1
+        }
+    }
+}
 # ------------------------------------------------------------
 # Create OUs for AD specific groups and users
 # ------------------------------------------------------------

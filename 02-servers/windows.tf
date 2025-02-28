@@ -7,6 +7,12 @@ resource "random_password" "win_adminuser_password" {
   override_special   = "!@#$%"
 }
 
+resource "random_string" "vm_suffix" {
+  length  = 6
+  special = false
+  upper   = false
+}
+
 # Create secret for local windows adminuser 
 
 resource "azurerm_key_vault_secret" "win_adminuser_secret" {
@@ -43,13 +49,13 @@ resource "azurerm_public_ip" "windows_vm_ip" {
   resource_group_name = data.azurerm_resource_group.ad.name      # Links to the resource group
   allocation_method   = "Dynamic"                                # Dynamically assign public IP
   sku                 = "Basic"                                  # Use basic SKU
-  domain_name_label   = "window-vm-${substr(data.azurerm_client_config.current.subscription_id, 0, 6)}" 
+  domain_name_label   = "window-vm-{${random_string.vm_suffix.result}"
                                                                  # Unique domain label for the public IP
 }
 
 # Define a Windows virtual machine
 resource "azurerm_windows_virtual_machine" "windows_ad_instance" {
-  name                = "win-ad-instance"                          # Name of the VM
+  name                = "win-ad-${random_string.vm_suffix.result}" # Name of the VM
   location            = data.azurerm_resource_group.ad.location    # VM location matches the resource group
   resource_group_name = data.azurerm_resource_group.ad.name        # Links to the resource group 
   size                = "Standard_DS1_v2"                          # VM size

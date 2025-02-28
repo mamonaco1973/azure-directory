@@ -42,7 +42,7 @@ resource "azurerm_public_ip" "linux_vm_ip" {
   resource_group_name = data.azurerm_resource_group.ad.name     # Links to the resource group
   allocation_method   = "Dynamic"                               # Dynamically assign public IP
   sku                 = "Basic"                                 # Use basic SKU
-  domain_name_label   = "linux-vm-${substr(data.azurerm_client_config.current.subscription_id, 0, 6)}"
+  domain_name_label   = "linux-vm-{${random_string.vm_suffix.result}"
   # Unique domain label for the public IP
 }
 
