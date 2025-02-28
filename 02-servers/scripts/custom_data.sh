@@ -111,7 +111,6 @@ default_shell = /bin/bash
 EOF
 
 chmod 600 /etc/sssd/sssd.conf
-#systemctl stop sssd
-#systemctl enable sssd
-#systemctl start sssd
+systemctl enable sssd
+systemctl start sssd
 
