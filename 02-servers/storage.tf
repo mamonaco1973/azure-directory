@@ -34,7 +34,7 @@ resource "azurerm_storage_blob" "ad_join_script" {
 }
 
 resource "random_string" "storage_name" {
-  length  = 12
+  length  = 10
   upper   = false
   special = false
   numeric = true
