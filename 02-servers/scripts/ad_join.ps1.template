@@ -1,4 +1,15 @@
 # ------------------------------------------------------------
+# Only run this script if not already joined to the domain
+# ------------------------------------------------------------
+
+$computerSystem = Get-WmiObject -Class Win32_ComputerSystem
+
+if ($computerSystem.PartOfDomain) {
+    Write-Output "Machine is already joined to a domain ($($computerSystem.Domain)). Exiting script."
+    exit
+}
+
+# ------------------------------------------------------------
 # Install Active Directory Components
 # ------------------------------------------------------------
 
