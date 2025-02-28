@@ -32,6 +32,84 @@ $cred = New-Object -TypeName System.Management.Automation.PSCredential -Argument
 # Join the EC2 instance to the Active Directory domain
 Add-Computer -DomainName "${domain_fqdn}" -Credential $cred -Force
 
+
+# ------------------------------------------------------------
+# Create OUs for AD specific groups and users
+# ------------------------------------------------------------
+
+New-ADOrganizationalUnit -Name "mcloud" -credential $cred
+New-ADOrganizationalUnit -Name "Users" -Path "OU=mcloud,DC=mcloud,DC=mikecloud,DC=com" -credential $cred
+$usersPath = "OU=Users,OU=mcloud,DC=mcloud,DC=mikecloud,DC=com"
+
+# ------------------------------------------------------------
+# Create AD Groups for User Management
+# ------------------------------------------------------------
+
+New-ADGroup -Name "mcloud-users" -GroupCategory Security -GroupScope Universal -Credential $cred -Path "$usersPath" -OtherAttributes @{gidNumber='10001'}
+New-ADGroup -Name "india" -GroupCategory Security -GroupScope Universal -Credential $cred -Path "$usersPath" -OtherAttributes @{gidNumber='10002'}
+New-ADGroup -Name "us" -GroupCategory Security -GroupScope Universal -Credential $cred -Path "$usersPath" -OtherAttributes @{gidNumber='10003'}
+New-ADGroup -Name "linux-admins" -GroupCategory Security -GroupScope Universal -Credential $cred -Path "$usersPath" -OtherAttributes @{gidNumber='10004'}
+
+# ------------------------------------------------------------
+# Create AD Users and Assign to Groups
+# ------------------------------------------------------------
+
+# Initialize a counter for uidNumber
+$uidCounter = 10000 
+
+# Function to create an AD user from AWS Secrets Manager
+function Create-ADUserFromSecret {
+    param (
+        [string]$SecretId,
+        [string]$GivenName,
+        [string]$Surname,
+        [string]$DisplayName,
+        [string]$Email,
+        [string]$Username,
+        [array]$Groups
+    )
+
+    # Increment the uidCounter for each new user
+    $global:uidCounter++
+    $uidNumber = $global:uidCounter
+
+    $secretValue = az keyvault secret show --name $SecretId --vault-name ${vault_name} --query value -o tsv
+    $secretObject = $secretValue | ConvertFrom-Json
+    $password = $secretObject.password | ConvertTo-SecureString -AsPlainText -Force
+
+    # Create the AD user
+    New-ADUser -Name $Username `
+        -GivenName $GivenName `
+        -Surname $Surname `
+        -DisplayName $DisplayName `
+        -EmailAddress $Email `
+        -UserPrincipalName "$Username@${domain_fqdn}" `
+        -SamAccountName $Username `
+        -AccountPassword $password `
+        -Enabled $true `
+        -Credential $cred `
+        -Path "$usersPath" `
+        -PasswordNeverExpires $true `
+        -OtherAttributes @{gidNumber='10001'; uidNumber=$uidNumber}
+    
+    # Add the user to specified groups
+    foreach ($group in $Groups) {
+        Add-ADGroupMember -Identity $group -Members $Username -Credential $cred
+    }
+}
+
+# Create users with predefined groups
+Create-ADUserFromSecret "jsmith-ad-credentials" "John" "Smith" "John Smith" "jsmith@mcloud.mikecloud.com" "jsmith" @("mcloud-users", "us", "linux-admins")
+Create-ADUserFromSecret "edavis-ad-credentials" "Emily" "Davis" "Emily Davis" "edavis@mikecloud.com" "edavis" @("mcloud-users", "us")
+Create-ADUserFromSecret "rpatel-ad-credentials" "Raj" "Patel" "Raj Patel" "rpatel@mikecloud.com" "rpatel" @("mcloud-users", "india", "linux-admins")
+Create-ADUserFromSecret "akumar-ad-credentials" "Amit" "Kumar" "Amit Kumar" "akumar@mikecloud.com" "akumar" @("mcloud-users", "india")
+
+# ------------------------------------------------------------
+# Grant RDP Access to All Users in "mcloud-users" Group
+# ------------------------------------------------------------
+
+Add-LocalGroupMember -Group "Remote Desktop Users" -Member "mcloud-users"
+
 # ------------------------------------------------------------
 # Final Reboot to Apply Changes
 # ------------------------------------------------------------
