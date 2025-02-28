@@ -48,11 +48,11 @@ resource "azurerm_public_ip" "linux_vm_ip" {
 
 # Define a Linux virtual machine
 resource "azurerm_linux_virtual_machine" "linux_ad_instance" {
-  name                            = "linux-ad-instance"                     # Name of the VM
-  location                        = data.azurerm_resource_group.ad.location # VM location matches the resource group
-  resource_group_name             = data.azurerm_resource_group.ad.name     # Links to the resource group
-  size                            = "Standard_B1s"                          # VM size
-  admin_username                  = "ubuntu"                                # Admin username for the VM
+  name                            = "linux-ad-${random_string.vm_suffix.result}"  # Name of the VM
+  location                        = data.azurerm_resource_group.ad.location       # VM location matches the resource group
+  resource_group_name             = data.azurerm_resource_group.ad.name           # Links to the resource group
+  size                            = "Standard_B1s"                                # VM size
+  admin_username                  = "ubuntu"                                      # Admin username for the VM
   admin_password                  = random_password.ubuntu_password.result
   disable_password_authentication = false
 
