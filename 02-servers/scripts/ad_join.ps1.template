@@ -2,8 +2,6 @@
 # Install Active Directory Components
 # ------------------------------------------------------------
 
-echo "NOTE: Processing custom_data" > C:\custom_data.log  
-
 # Suppress progress bars to speed up execution
 $ProgressPreference = 'SilentlyContinue'
 
