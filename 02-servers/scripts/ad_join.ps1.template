@@ -41,7 +41,6 @@ $cred = New-Object -TypeName System.Management.Automation.PSCredential -Argument
 # Join the EC2 instance to the Active Directory domain
 Add-Computer -DomainName "${domain_fqdn}" -Credential $cred -Force
 
-
 # ------------------------------------------------------------
 # Create OUs for AD specific groups and users
 # ------------------------------------------------------------
