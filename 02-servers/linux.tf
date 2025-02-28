@@ -1,3 +1,25 @@
+
+# --- User: ubuntu ---
+
+# Generate a random password for "ubuntu"
+resource "random_password" "ubuntu_password" {
+  length             = 24
+  special            = true
+  override_special   = "!@#$%"
+}
+
+# Create secret for local linux ubuntu account
+
+resource "azurerm_key_vault_secret" "ubuntu_secret" {
+  name         = "ubuntu-credentials"
+  value        = jsonencode({
+    username = "ubuntu"
+    password = random_password.ubuntu_password.result
+  })
+  key_vault_id = data.azurerm_key_vault.ad_key_vault.id
+  content_type = "application/json"
+}
+
 # Define a network interface to connect the VM to the network
 resource "azurerm_network_interface" "linux_vm_nic" {
   name                = "linux-vm-nic"                            # Name of the NIC
@@ -31,7 +53,7 @@ resource "azurerm_linux_virtual_machine" "linux_ad_instance" {
   resource_group_name = data.azurerm_resource_group.ad.name       # Links to the resource group
   size                = "Standard_B1s"                            # VM size
   admin_username      = "ubuntu"                                  # Admin username for the VM
-  admin_password      = "Password1!"
+  admin_password      = random_password.ubuntu_password.result
   disable_password_authentication = false
 
   network_interface_ids = [
@@ -54,4 +76,16 @@ resource "azurerm_linux_virtual_machine" "linux_ad_instance" {
 
   # Pass custom data to the VM (e.g., initialization script)
   custom_data = filebase64("scripts/custom_data.sh")
+
+  identity {
+    type = "SystemAssigned"
+  }
+}
+
+
+# Assign the "Key Vault Secrets User" role to the VM's managed identity
+resource "azurerm_role_assignment" "vm_lnx_key_vault_secrets_user" {
+  scope                = data.azurerm_key_vault.ad_key_vault.id
+  role_definition_name = "Key Vault Secrets User"
+  principal_id         =  azurerm_linux_virtual_machine.linux_ad_instance.identity[0].principal_id
 }

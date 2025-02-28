@@ -1,4 +1,27 @@
+# --- User: adminuser ---
+
+# Generate a random password for "adminuser"
+resource "random_password" "win_adminuser_password" {
+  length             = 24
+  special            = true
+  override_special   = "!@#$%"
+}
+
+# Create secret for local windows adminuser 
+
+resource "azurerm_key_vault_secret" "win_adminuser_secret" {
+  name         = "win-adminuser-credentials"
+  value        = jsonencode({
+    username = ".\\adminuser"
+    password = random_password.win_adminuser_password.result
+  })
+  key_vault_id = data.azurerm_key_vault.ad_key_vault.id
+  content_type = "application/json"
+}
+
+
 # Define a network interface to connect the VM to the network
+
 resource "azurerm_network_interface" "windows_vm_nic" {
   name                = "windows-vm-nic"                            # Name of the NIC
   location            = data.azurerm_resource_group.ad.location   # VM location matches the resource group
@@ -31,7 +54,7 @@ resource "azurerm_windows_virtual_machine" "windows_ad_instance" {
   resource_group_name = data.azurerm_resource_group.ad.name        # Links to the resource group 
   size                = "Standard_DS1_v2"                          # VM size
   admin_username      = "adminuser"                                # Admin username for the VM
-  admin_password      = "Password1!"                               # Admin password (Ensure strong password policy)
+  admin_password      = random_password.win_adminuser_password.result
 
   network_interface_ids = [
     azurerm_network_interface.windows_vm_nic.id                   # Associate NIC with the VM
@@ -62,7 +85,7 @@ resource "azurerm_windows_virtual_machine" "windows_ad_instance" {
 }
 
 # Assign the "Key Vault Secrets User" role to the VM's managed identity
-resource "azurerm_role_assignment" "vm_key_vault_secrets_user" {
+resource "azurerm_role_assignment" "vm_win_key_vault_secrets_user" {
   scope                = data.azurerm_key_vault.ad_key_vault.id
   role_definition_name = "Key Vault Secrets User"
   principal_id         = azurerm_windows_virtual_machine.windows_ad_instance.identity[0].principal_id
