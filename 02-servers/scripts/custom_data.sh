@@ -23,7 +23,29 @@ export DEBIAN_FRONTEND=noninteractive
 # - nano, vim: Text editors for configuration file editing.
 apt-get install less unzip realmd sssd-tools libnss-sss \
     libpam-sss adcli samba-common-bin samba-libs oddjob \
-    oddjob-mkhomedir packagekit nano vim -y
+    oddjob-mkhomedir packagekit nano vim curl apt-transport-https \
+    lsb-release gnupg -y
+
+# ---------------------------------------------------------------------------------
+# Section 2: Install AZ CLI
+# ---------------------------------------------------------------------------------
+
+curl -sL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor | tee /etc/apt/keyrings/microsoft-azure-cli-archive-keyring.gpg > /dev/null
+AZ_REPO=$(lsb_release -cs)
+echo "deb [signed-by=/etc/apt/keyrings/microsoft-azure-cli-archive-keyring.gpg] https://packages.microsoft.com/repos/azure-cli/ $AZ_REPO main" \
+    | tee /etc/apt/sources.list.d/azure-cli.list
+apt-get update -y
+apt-get install -y azure-cli
+
+# ---------------------------------------------------------------------------------
+# Section 2: Configure AD as the identity provider
+# ---------------------------------------------------------------------------------
+
+az login --identity --allow-no-subscriptions
+secretsJson=$(az keyvault secret show --name admin-ad-credentials --vault-name ${vault_name} --query value -o tsv)
+admin_password=$(echo "$secretsJson" | jq -r '.password')
+
+systemctl stop sssd
 
 # Write the new sssd.conf
 cat <<EOF > "/etc/sssd/sssd.conf"
@@ -48,7 +70,7 @@ ldap_search_base = DC=mcloud,DC=mikecloud,DC=com
 
 # Bind DN (the admin account for LDAP queries)
 ldap_default_bind_dn = CN=mcloud-admin,OU=AADDC Users,DC=mcloud,DC=mikecloud,DC=com
-ldap_default_authtok = F##1r$2%YVhompYlZYBmrpvE
+ldap_default_authtok = $admin_password
 
 # Search bases for users and groups (can be customized if needed)
 ldap_user_search_base = DC=mcloud,DC=mikecloud,DC=com
@@ -89,7 +111,7 @@ default_shell = /bin/bash
 EOF
 
 chmod 600 /etc/sssd/sssd.conf
-systemctl stop sssd
-systemctl enable sssd
-systemctl start sssd
+#systemctl stop sssd
+#systemctl enable sssd
+#systemctl start sssd
 

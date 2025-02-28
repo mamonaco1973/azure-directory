@@ -75,7 +75,12 @@ resource "azurerm_linux_virtual_machine" "linux_ad_instance" {
   }
 
   # Pass custom data to the VM (e.g., initialization script)
-  custom_data = filebase64("scripts/custom_data.sh")
+  #custom_data = filebase64("scripts/custom_data.sh")
+
+  custom_data = base64encode(templatefile("./scripts/custom_data.sh", {
+    vault_name  = data.azurerm_key_vault.ad_key_vault.name
+    domain_fqdn = "mcloud.mikecloud.com"
+  }))
 
   identity {
     type = "SystemAssigned"
