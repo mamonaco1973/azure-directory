@@ -86,7 +86,7 @@ resource "azurerm_linux_virtual_machine" "linux_ad_instance" {
     type = "SystemAssigned"
   }
 
-  depends_on = [ azurerm_windows_virtual_machine.windows_ad_instance ]
+  depends_on = [ azurerm_virtual_machine_extension.join_script ]
 }
 
 
