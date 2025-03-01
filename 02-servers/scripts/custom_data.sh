@@ -111,6 +111,7 @@ default_shell = /bin/bash
 EOF
 
 chmod 600 /etc/sssd/sssd.conf
+sudo pam-auth-update --enable mkhomedir
 systemctl enable sssd
 systemctl start sssd
 
