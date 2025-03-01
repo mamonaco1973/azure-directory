@@ -82,6 +82,12 @@ resource "azurerm_active_directory_domain_service" "aadds" {
     sync_on_prem_passwords  = true
   }
 
+  secure_ldap {
+    enabled                  = true
+    pfx_certificate          = filebase64("./certs/ldaps.pfx")
+    pfx_certificate_password = data.azurerm_client_config.current.tenant_id
+  }
+
   depends_on = [
     azurerm_subnet_network_security_group_association.aadds
   ]
