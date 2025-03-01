@@ -114,3 +114,10 @@ chmod 600 /etc/sssd/sssd.conf
 systemctl enable sssd
 systemctl start sssd
 
+# ---------------------------------------------------------------------------------
+# Section 3: Grant Sudo Privileges to AD Linux Admins
+# ---------------------------------------------------------------------------------
+
+# Add a sudoers rule to grant passwordless sudo access to members of the
+# "linux-admins" AD group.
+sudo echo "%linux-admins ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/10-linux-admins
