@@ -1,4 +1,8 @@
 
+# These two settings were moved to ./check_env.sh 
+# Letting terraform manage these settings causes problems when
+# destroying the project 
+
 # resource "azurerm_resource_provider_registration" "aadds" {
 #   name = "Microsoft.AAD"
 # }

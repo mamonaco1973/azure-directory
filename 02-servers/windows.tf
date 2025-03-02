@@ -86,6 +86,8 @@ resource "azurerm_windows_virtual_machine" "windows_ad_instance" {
   identity {
     type = "SystemAssigned"
   }
+  depends_on = [ azurerm_key_vault_secret.admin_secret ,
+                 azuread_user.mcloud_admin]
 }
 
 # --- Grant the VM's system-managed identity permission to read secrets from Key Vault ---

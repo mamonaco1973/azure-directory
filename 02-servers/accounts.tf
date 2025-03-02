@@ -12,8 +12,7 @@ resource "azurerm_key_vault_secret" "admin_secret" {
     username = "mcloud-admin@${var.azure_domain}"
     password = random_password.admin_password.result
   })
-  key_vault_id = azurerm_key_vault.ad_key_vault.id
-  depends_on = [ azurerm_role_assignment.kv_role_assignment ]
+  key_vault_id = data.azurerm_key_vault.ad_key_vault.id
   content_type = "application/json"
 }
 
