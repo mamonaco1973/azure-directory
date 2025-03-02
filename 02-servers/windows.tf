@@ -107,7 +107,7 @@ resource "azurerm_virtual_machine_extension" "join_script" {
   settings = <<SETTINGS
   {
     "fileUris": ["https://${azurerm_storage_account.scripts_storage.name}.blob.core.windows.net/${azurerm_storage_container.scripts.name}/${azurerm_storage_blob.ad_join_script.name}?${data.azurerm_storage_account_sas.script_sas.sas}"],
-    "commandToExecute": "powershell.exe -ExecutionPolicy Unrestricted -File ad-join.ps1"
+    "commandToExecute": "powershell.exe -ExecutionPolicy Unrestricted -File ad-join.ps1 *> C:\\WindowsAzure\\Logs\\ad-join.log"
   }
   SETTINGS
 }

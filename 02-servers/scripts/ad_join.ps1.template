@@ -71,6 +71,8 @@ while ($retryCount -lt $maxRetries) {
 # Create OUs for AD specific groups and users
 # ------------------------------------------------------------
 
+Write-Output "Create new OU for local users"
+
 New-ADOrganizationalUnit -Name "mcloud" -credential $cred
 New-ADOrganizationalUnit -Name "Users" -Path "OU=mcloud,DC=mcloud,DC=mikecloud,DC=com" -credential $cred
 $usersPath = "OU=Users,OU=mcloud,DC=mcloud,DC=mikecloud,DC=com"
@@ -78,6 +80,8 @@ $usersPath = "OU=Users,OU=mcloud,DC=mcloud,DC=mikecloud,DC=com"
 # ------------------------------------------------------------
 # Create AD Groups for User Management
 # ------------------------------------------------------------
+
+Write-Output "Create local groups in new OU"
 
 New-ADGroup -Name "mcloud-users" -GroupCategory Security -GroupScope Universal -Credential $cred -Path "$usersPath" -OtherAttributes @{gidNumber='10001'}
 New-ADGroup -Name "india" -GroupCategory Security -GroupScope Universal -Credential $cred -Path "$usersPath" -OtherAttributes @{gidNumber='10002'}
@@ -111,6 +115,8 @@ function Create-ADUserFromSecret {
     $secretObject = $secretValue | ConvertFrom-Json
     $password = $secretObject.password | ConvertTo-SecureString -AsPlainText -Force
 
+    Write-Output "Create local user $UserName"
+
     # Create the AD user
     New-ADUser -Name $Username `
         -GivenName $GivenName `
@@ -126,6 +132,8 @@ function Create-ADUserFromSecret {
         -PasswordNeverExpires $true `
         -OtherAttributes @{gidNumber='10001'; uidNumber=$uidNumber}
     
+    Write-Output "Add user $UserName to groups"
+
     # Add the user to specified groups
     foreach ($group in $Groups) {
         Add-ADGroupMember -Identity $group -Members $Username -Credential $cred
@@ -133,6 +141,9 @@ function Create-ADUserFromSecret {
 }
 
 # Create users with predefined groups
+
+Write-Output "Creating all local domain users"
+
 Create-ADUserFromSecret "jsmith-ad-credentials" "John" "Smith" "John Smith" "jsmith@mcloud.mikecloud.com" "jsmith" @("mcloud-users", "us", "linux-admins")
 Create-ADUserFromSecret "edavis-ad-credentials" "Emily" "Davis" "Emily Davis" "edavis@mikecloud.com" "edavis" @("mcloud-users", "us")
 Create-ADUserFromSecret "rpatel-ad-credentials" "Raj" "Patel" "Raj Patel" "rpatel@mikecloud.com" "rpatel" @("mcloud-users", "india", "linux-admins")
@@ -142,11 +153,14 @@ Create-ADUserFromSecret "akumar-ad-credentials" "Amit" "Kumar" "Amit Kumar" "aku
 # Grant RDP Access to All Users in "mcloud-users" Group
 # ------------------------------------------------------------
 
+Write-Output "Add users to the Remote Desktop Users Group"
 Add-LocalGroupMember -Group "Remote Desktop Users" -Member "mcloud-users"
 
 # ------------------------------------------------------------
 # Final Reboot to Apply Changes
 # ------------------------------------------------------------
+
+Write-Output "Finalize join with a reboot"
 
 # Reboot the server to finalize the domain join and group policies
 shutdown /r /t 5 /c "Initial reboot to join domain" /f /d p:4:1
