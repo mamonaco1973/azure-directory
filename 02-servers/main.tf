@@ -51,3 +51,9 @@ data "azurerm_key_vault" "ad_key_vault" {
   resource_group_name = var.resource_group_name             # Key Vault must be in the same resource group
 }
 # This allows other resources (like secrets) to link to this Key Vault.
+
+variable "azure_domain" {
+  description = "The default Azure AD domain"
+#  default     = "mamonaco1973gmail.onmicrosoft.com"
+}
+

@@ -3,29 +3,27 @@
 #   name = "Microsoft.AAD"
 # }
 
-resource "azuread_group" "dc_admins" {
-  display_name     = "AAD DC Administrators"
-  description      = "AADDS Administrators"
-  members          = [azuread_user.mcloud_admin.object_id]
-  security_enabled = true
-}
-
 # Put this in the build script - az ad sp create --id "2565bd9d-da50-47d4-8b85-4c97f669dc36"
 # resource "azuread_service_principal" "aadds" {
 #   client_id = "2565bd9d-da50-47d4-8b85-4c97f669dc36" 
 # }
 
-resource "azuread_user" "mcloud_admin" {
-  user_principal_name = "mcloud-admin@${var.azure_domain}"
-  display_name        = "mcloud-admin"
-  password            = random_password.admin_password.result
-  depends_on          = [ azurerm_active_directory_domain_service.aadds ]
-}
-
 resource "azurerm_network_security_group" "aadds" {
   name                = "aadds-nsg"
   location            = azurerm_resource_group.ad.location
   resource_group_name = azurerm_resource_group.ad.name
+
+  security_rule {
+    name                       = "AllowSyncWithAzureAD"
+    priority                   = 101
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "443"
+    source_address_prefix      = "AzureActiveDirectoryDomainServices"
+    destination_address_prefix = "*"
+  }
 
   security_rule {
     name                       = "AllowRD"
@@ -48,6 +46,18 @@ resource "azurerm_network_security_group" "aadds" {
     source_port_range          = "*"
     destination_port_range     = "5986"
     source_address_prefix      = "AzureActiveDirectoryDomainServices"
+    destination_address_prefix = "*"
+  }
+
+  security_rule {
+    name                       = "AllowLDAPS"
+    priority                   = 401
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "636"
+    source_address_prefix      = "*"
     destination_address_prefix = "*"
   }
 }

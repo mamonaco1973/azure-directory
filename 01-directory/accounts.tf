@@ -1,22 +1,3 @@
-# Generate a random password for the Active Directory (AD) Administrator
-resource "random_password" "admin_password" {
-  length             = 24    # Set password length to 24 characters
-  special            = true  # Include special characters in the password
-  override_special   = "!@#$%" # Limit special characters to this set
-}
-
-# Create a Key Vault secret for the AD Admin credentials
-resource "azurerm_key_vault_secret" "admin_secret" {
-  name         = "admin-ad-credentials"
-  value        = jsonencode({
-    username = "mcloud-admin@${var.azure_domain}"
-    password = random_password.admin_password.result
-  })
-  key_vault_id = azurerm_key_vault.ad_key_vault.id
-  depends_on = [ azurerm_role_assignment.kv_role_assignment ]
-  content_type = "application/json"
-}
-
 # --- User: John Smith ---
 
 # Generate a random password for John Smith

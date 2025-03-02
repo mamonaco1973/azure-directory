@@ -6,7 +6,7 @@ $computerSystem = Get-WmiObject -Class Win32_ComputerSystem
 
 if ($computerSystem.PartOfDomain) {
     Write-Output "Machine is already joined to a domain ($($computerSystem.Domain)). Exiting script."
-    exit
+    #exit
 }
 
 # ------------------------------------------------------------
@@ -155,6 +155,23 @@ Create-ADUserFromSecret "akumar-ad-credentials" "Amit" "Kumar" "Amit Kumar" "aku
 
 Write-Output "Add users to the Remote Desktop Users Group"
 Add-LocalGroupMember -Group "Remote Desktop Users" -Member "mcloud-users"
+
+#$scriptContent = @'
+#echo "Starting script to modify Remote Desktop Users" > C:\WindowsAzure\add-rdp-users.log
+#Start-Sleep -Seconds 60
+#Add-LocalGroupMember -Group "Remote Desktop Users" -Member "mcloud\mcloud-users"
+#Unregister-ScheduledTask -TaskName "Add-McloudUsersToRDP" -Confirm:$false
+#'@
+
+#$scriptContent | Out-File -FilePath "c:\WindowsAzure\add-rdp-users.ps1" -Encoding ASCII
+
+# Register the startup scheduled task
+#$taskName = "Add-McloudUsersToRDP"
+#$action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-ExecutionPolicy Bypass -File c:\WindowsAzure\add-rdp-users.ps1"
+#$trigger = New-ScheduledTaskTrigger -AtStartup
+#$principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount -RunLevel Highest
+
+#Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Principal $principal
 
 # ------------------------------------------------------------
 # Final Reboot to Apply Changes
