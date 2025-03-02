@@ -3,7 +3,7 @@
 echo "NOTE: Validating that required commands are found in your PATH."
 
 # List of required commands
-commands=("az" "packer" "terraform")
+commands=("az" "terraform")
 
 # Flag to track if all commands are found
 all_found=true
@@ -62,4 +62,22 @@ else
   echo "NOTE: Successfully logged into Azure."
 fi
 
+ROLE_CHECK=$(az rest --method GET --url "https://graph.microsoft.com/v1.0/directoryRoles" --query "value[?displayName=='User Administrator'].id" --output tsv)
+if [ -z "$ROLE_CHECK" ]; then
+    echo "ERROR: 'User Administrator' entra role is NOT assigned to current service principal."
+    exit 1
+else
+    echo "NOTE: 'User Administrator' entra role is assigned to current service principal."
+fi
 
+echo "NOTE: Validating AADS service prinicipal '2565bd9d-da50-47d4-8b85-4c97f669dc36'"
+
+az ad sp create --id "2565bd9d-da50-47d4-8b85-4c97f669dc36" 2> /dev/null
+
+az provider register --namespace Microsoft.AAD
+
+while [[ "$(az provider show --namespace Microsoft.App --query "registrationState" --output tsv)" != "Registered" ]]; do
+  echo "NOTE: Waiting for Microsoft.AAD to register..."
+  sleep 10
+done
+echo "NOTE: Microsoft.AAD is currently registered!"
