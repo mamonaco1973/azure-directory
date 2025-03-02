@@ -1,11 +1,7 @@
 
 #!/bin/bash
 
-
-if az ad group show --group "AAD DC Administrators" >/dev/null 2>&1; then
-    echo "NOTE: Deleting AAD DC Administrators group to avoid conflicts..."
-    az ad group delete --group "AAD DC Administrators"
-fi
+set -e
 
 cd 02-servers
 
@@ -24,5 +20,10 @@ terraform init
 terraform destroy -var="azure_domain=$default_domain" -auto-approve
 
 cd ..
+
+if az ad group show --group "AAD DC Administrators" >/dev/null 2>&1; then
+    echo "NOTE: Deleting AAD DC Administrators group to avoid conflicts..."
+    az ad group delete --group "AAD DC Administrators"
+fi
 
 
