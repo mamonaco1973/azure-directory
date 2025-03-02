@@ -27,6 +27,6 @@ data "azuread_group" "dc_admins" {
 }
 
 resource "azuread_group_member" "mcloud_admin_member" {
-  group_object_id = data.azuread_group.dc_admins.id
+  group_object_id = data.azuread_group.dc_admins.object_id
   member_object_id = azuread_user.mcloud_admin.object_id
 }
