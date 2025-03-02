@@ -35,6 +35,9 @@ resource "azurerm_storage_blob" "ad_join_script" {
   storage_container_name = azurerm_storage_container.scripts.name        # Place in the 'scripts' container
   type                   = "Block"                                       # Blob type (most common type for files)
   source                 = local_file.ad_join_rendered.filename          # Source file to upload (rendered script)
+  metadata = {
+    force_update = "${timestamp()}"   # This forces re-upload every time
+  }
 }
 
 # --- Generate a random string for use in the storage account name ---
