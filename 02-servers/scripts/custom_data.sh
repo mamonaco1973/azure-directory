@@ -108,7 +108,6 @@ default_shell = /bin/bash
 ldap_id_use_start_tls = False
 ldap_tls_reqcert = never
 use_fully_qualified_names = False
-full_name_format = %1$s
 ldap_auth_disable_tls_never_use_in_production = true
 
 EOF
