@@ -101,13 +101,16 @@ cache_credentials = True
 # Performance tuning
 enumerate = False
 
-# TLS (Optional, but recommended for secure LDAP)
-#ldap_tls_cacert = /etc/sssd/ca.pem   # Point this to the root CA used by your AD DS LDAP if needed
-#ldap_tls_reqcert = allow              # Use "demand" for stricter security if cert is trusted
-
 # Additional options to handle UID/GID if needed (especially if Azure AD DS doesn't have POSIX attributes)
 fallback_homedir = /home/%u
 default_shell = /bin/bash
+
+ldap_id_use_start_tls = False
+ldap_tls_reqcert = never
+use_fully_qualified_names = False
+full_name_format = %1$s
+ldap_auth_disable_tls_never_use_in_production = true
+
 EOF
 
 chmod 600 /etc/sssd/sssd.conf
