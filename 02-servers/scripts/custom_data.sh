@@ -118,6 +118,11 @@ sudo pam-auth-update --enable mkhomedir
 systemctl enable sssd
 systemctl start sssd
 
+# Stop XAuthority warning 
+
+touch /etc/skel/.Xauthority
+chmod 600 /etc/skel/.Xauthority
+
 # ---------------------------------------------------------------------------------
 # Section 3: Grant Sudo Privileges to AD Linux Admins
 # ---------------------------------------------------------------------------------
