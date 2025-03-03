@@ -6,7 +6,7 @@ $computerSystem = Get-WmiObject -Class Win32_ComputerSystem
 
 if ($computerSystem.PartOfDomain) {
     Write-Output "Machine is already joined to a domain ($($computerSystem.Domain)). Exiting script."
-    #exit
+    exit
 }
 
 # ------------------------------------------------------------
