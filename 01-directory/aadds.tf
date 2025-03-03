@@ -97,7 +97,8 @@ resource "azurerm_active_directory_domain_service" "aadds" {
   }
 
   depends_on = [
-    azurerm_subnet_network_security_group_association.aadds
+    azurerm_subnet_network_security_group_association.aadds,
+    azurerm_subnet_network_security_group_association.vm-nsg-assoc
   ]
 }
 
