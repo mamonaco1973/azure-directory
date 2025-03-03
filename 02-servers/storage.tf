@@ -66,8 +66,11 @@ data "azurerm_storage_account_sas" "script_sas" {
     file   = false # No file share access needed
   }
 
-  start  = formatdate("YYYY-MM-DD'T'HH:mm:ss'Z'", timestamp())                 # Start time (now)
-  expiry = formatdate("YYYY-MM-DD'T'HH:mm:ss'Z'", timeadd(timestamp(), "24h")) # Expire after 24 hours
+  start  = formatdate("YYYY-MM-DD'T'HH:mm:ss'Z'", timeadd(timestamp(), "-24h"))
+  expiry = formatdate("YYYY-MM-DD'T'HH:mm:ss'Z'", timeadd(timestamp(), "72h"))
+
+  #start  = formatdate("YYYY-MM-DD'T'HH:mm:ss'Z'", timestamp())                 # Start time (now)
+  #expiry = formatdate("YYYY-MM-DD'T'HH:mm:ss'Z'", timeadd(timestamp(), "24h")) # Expire after 24 hours
 
   permissions {
     read    = true   # Allow read access (needed to download the script)

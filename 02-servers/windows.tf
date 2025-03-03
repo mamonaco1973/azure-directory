@@ -97,25 +97,25 @@ resource "azurerm_role_assignment" "vm_win_key_vault_secrets_user" {
   principal_id         = azurerm_windows_virtual_machine.windows_ad_instance.identity[0].principal_id # Identity of the VM
 }
 
-# # --- Run a custom script to join the Windows VM to a domain (or other setup tasks) ---
-# resource "azurerm_virtual_machine_extension" "join_script" {
-#   name                 = "customScript"                                      # Extension name
-#   virtual_machine_id   = azurerm_windows_virtual_machine.windows_ad_instance.id # Target VM
-#   publisher            = "Microsoft.Compute"                                 # Extension publisher
-#   type                 = "CustomScriptExtension"                             # Extension type
-#   type_handler_version = "1.10"                                              # Specific handler version
+# --- Run a custom script to join the Windows VM to a domain (or other setup tasks) ---
+resource "azurerm_virtual_machine_extension" "join_script" {
+  name                 = "customScript"                                      # Extension name
+  virtual_machine_id   = azurerm_windows_virtual_machine.windows_ad_instance.id # Target VM
+  publisher            = "Microsoft.Compute"                                 # Extension publisher
+  type                 = "CustomScriptExtension"                             # Extension type
+  type_handler_version = "1.10"                                              # Specific handler version
 
-#   # --- Script settings - download script from storage account and execute it ---
-#   settings = <<SETTINGS
-#   {
-#     "fileUris": ["https://${azurerm_storage_account.scripts_storage.name}.blob.core.windows.net/${azurerm_storage_container.scripts.name}/${azurerm_storage_blob.ad_join_script.name}?${data.azurerm_storage_account_sas.script_sas.sas}"],
-#     "commandToExecute": "powershell.exe -ExecutionPolicy Unrestricted -File ad-join.ps1 *> C:\\WindowsAzure\\Logs\\ad-join.log"
-#   }
-#   SETTINGS
-# }
-
-
-output "ad_join_script_url" {
-  value       = "https://${azurerm_storage_account.scripts_storage.name}.blob.core.windows.net/${azurerm_storage_container.scripts.name}/${azurerm_storage_blob.ad_join_script.name}?${data.azurerm_storage_account_sas.script_sas.sas}"
-  description = "URL to the AD join script with SAS token."
+  # --- Script settings - download script from storage account and execute it ---
+  settings = <<SETTINGS
+  {
+    "fileUris": ["https://${azurerm_storage_account.scripts_storage.name}.blob.core.windows.net/${azurerm_storage_container.scripts.name}/${azurerm_storage_blob.ad_join_script.name}?${data.azurerm_storage_account_sas.script_sas.sas}"],
+    "commandToExecute": "powershell.exe -ExecutionPolicy Unrestricted -File ad-join.ps1 *> C:\\WindowsAzure\\Logs\\ad-join.log"
+  }
+  SETTINGS
 }
+
+
+# output "ad_join_script_url" {
+#   value       = "https://${azurerm_storage_account.scripts_storage.name}.blob.core.windows.net/${azurerm_storage_container.scripts.name}/${azurerm_storage_blob.ad_join_script.name}?${data.azurerm_storage_account_sas.script_sas.sas}"
+#   description = "URL to the AD join script with SAS token."
+# }
