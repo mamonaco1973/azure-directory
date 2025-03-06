@@ -41,7 +41,7 @@ resource "azurerm_public_ip" "linux_vm_ip" {
   location            = data.azurerm_resource_group.ad.location # Same location as resource group
   resource_group_name = data.azurerm_resource_group.ad.name     # Same resource group
   allocation_method   = "Dynamic"                               # IP assigned dynamically
-  sku                 = "Basic"                                 # Basic SKU (cheapest option)
+  sku                 = "Standard"                              # Standard SKU
   domain_name_label   = "linux-vm-${random_string.vm_suffix.result}" # Unique domain name label using random suffix
 }
 
