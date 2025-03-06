@@ -45,7 +45,7 @@ resource "azurerm_public_ip" "windows_vm_ip" {
   name                = "windows-vm-ip"                          # Public IP name
   location            = data.azurerm_resource_group.ad.location  # Use same location as resource group
   resource_group_name = data.azurerm_resource_group.ad.name      # Place public IP in same resource group
-  allocation_method   = "Dynamic"                                # Public IP assigned dynamically
+  allocation_method   = "Static"                                 # Public IP assigned dynamically
   sku                 = "Standard"                               # Use Basic Standard
   domain_name_label   = "window-vm-${random_string.vm_suffix.result}" # Unique DNS label based on random suffix
 }
