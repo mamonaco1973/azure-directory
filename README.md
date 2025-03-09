@@ -24,7 +24,7 @@ This tutorial will help you understand **Azure AD Domain Services** and how to u
 * [Install AZ CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli) 
 * [Install Latest Terraform](https://developer.hashicorp.com/terraform/install)
 * [Microsoft.AAD](https://learn.microsoft.com/en-us/azure/role-based-access-control/permissions/identity#microsoftaad) Provider must be enabled
-* `User Administrator` **Entra ID** role must be assigned to build identity
+* `Global Administrator` **Entra ID** role must be assigned to build identity
 
 If this is your first time watching our content, we recommend starting with this video: [Azure + Terraform: Easy Setup](https://www.youtube.com/watch?v=wwi3kVgYNOk). It provides a step-by-step guide to properly configure Terraform, Packer, and the AZ CLI.
 
