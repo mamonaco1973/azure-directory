@@ -6,12 +6,12 @@ This is Part 2 of the Series: [Deploying Active Directory in the Cloud](TBD)
 
 In this video, we will demonstrate the deployment of **Azure Entra Domain Services (Azure AD DS)**, a fully managed **Active Directory** solution in Azure, while covering the following tasks:  
 
+- **Configure secure networking** by setting up subnets, Network Security Groups (NSGs), and private DNS to ensure seamless domain connectivity. 
 - **Deploy Azure AD Domain Services** within an Azure Virtual Network (VNet) to support domain-joined workloads.  
-- **Configure secure networking** by setting up subnets, Network Security Groups (NSGs), and private DNS to ensure seamless domain connectivity.  
 - **Join both Windows and Linux servers** to the Active Directory domain.  
-- **Configure SSSD** ([System Security Services Daemon](https://sssd.io/)) for Linux authentication with Active Directory.  
-- **Integrate with Azure Key Vault** to securely store and retrieve administrator credentials.  
 - **Manage directory objects and policies**, including users, groups, and Organizational Units (OUs).  
+- **Integrate with Azure Key Vault** to securely store and retrieve administrator credentials.  
+- **Configure SSSD** ([System Security Services Daemon](https://sssd.io/)) for Linux authentication with Active Directory.  
 - **Clean up resources** by decommissioning all infrastructure provisioned during the process.  
 
 This tutorial will help you understand **Azure AD Domain Services** and how to use it for **identity management in Azure environments**.
