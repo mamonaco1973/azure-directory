@@ -62,12 +62,12 @@ else
   echo "NOTE: Successfully logged into Azure."
 fi
 
-ROLE_CHECK=$(az rest --method GET --url "https://graph.microsoft.com/v1.0/directoryRoles" --query "value[?displayName=='User Administrator'].id" --output tsv)
+ROLE_CHECK=$(az rest --method GET --url "https://graph.microsoft.com/v1.0/directoryRoles" --query "value[?displayName=='Global Administrator'].id" --output tsv)
 if [ -z "$ROLE_CHECK" ]; then
-    echo "ERROR: 'User Administrator' entra role is NOT assigned to current service principal."
+    echo "ERROR: 'Global Administrator' entra role is NOT assigned to current service principal."
     exit 1
 else
-    echo "NOTE: 'User Administrator' entra role is assigned to current service principal."
+    echo "NOTE: 'Global Administrator' entra role is assigned to current service principal."
 fi
 
 echo "NOTE: Validating AADS service prinicipal '2565bd9d-da50-47d4-8b85-4c97f669dc36'"
