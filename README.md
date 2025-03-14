@@ -1,6 +1,6 @@
 # Azure Entra Domain Services (Azure AD DS)
 
-This is Part 2 of the Series: [Deploying Active Directory in the Cloud](TBD)
+This is Part 2 of the Series: [Deploying Active Directory in the Cloud](https://youtu.be/H5lKJPJBL5s)
 
 ## Introduction  
 
