@@ -39,5 +39,5 @@ resource "azurerm_role_assignment" "avd_user_access" {
 
 resource "azurerm_virtual_desktop_host_pool_registration_info" "token" {
   hostpool_id = azurerm_virtual_desktop_host_pool.avd_host_pool.id
-  expiration_date  = timeadd(timestamp(), "PT24H") # Token valid for 24 hours
+  expiration_date  = timeadd(timestamp(), "24h") # Token valid for 24 hours
 }
