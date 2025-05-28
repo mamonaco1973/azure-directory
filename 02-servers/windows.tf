@@ -119,3 +119,21 @@ resource "azurerm_virtual_machine_extension" "join_script" {
 #   value       = "https://${azurerm_storage_account.scripts_storage.name}.blob.core.windows.net/${azurerm_storage_container.scripts.name}/${azurerm_storage_blob.ad_join_script.name}?${data.azurerm_storage_account_sas.script_sas.sas}"
 #   description = "URL to the AD join script with SAS token."
 # }
+
+resource "azurerm_virtual_machine_extension" "avd_agent" {
+  name                 = "avd-agent"
+  virtual_machine_id   = azurerm_windows_virtual_machine.windows_ad_instance.id
+  publisher            = "Microsoft.Azure.VirtualDesktop"
+  type                 = "MicrosoftRDInfra-Agent"
+  type_handler_version = "1.0"
+
+  settings = jsonencode({
+    "agentBootServiceAccount" : "NT AUTHORITY\\System"
+  })
+
+  protected_settings = jsonencode({
+    "registrationInfoToken" : azurerm_virtual_desktop_host_pool_registration_info.token.token
+  })
+
+  depends_on = [azurerm_virtual_machine_extension.join_script]
+}
