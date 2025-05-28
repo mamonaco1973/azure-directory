@@ -22,12 +22,6 @@ resource "azuread_user" "mcloud_admin" {
    password            = random_password.admin_password.result
 }
 
-resource "azurerm_role_assignment" "avd_user_access" {
-  scope                = azurerm_virtual_desktop_application_group.avd_app_group.id
-  role_definition_name = "Desktop Virtualization User"
-  principal_id         = azuread_user.mcloud_admin.object_id
-}
-
 data "azuread_group" "dc_admins" {
   display_name = "AAD DC Administrators"
 }
