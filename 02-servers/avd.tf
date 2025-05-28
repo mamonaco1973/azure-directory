@@ -41,9 +41,3 @@ resource "azurerm_virtual_desktop_host_pool_registration_info" "token" {
   hostpool_id = azurerm_virtual_desktop_host_pool.avd_host_pool.id
   expiration_date  = timeadd(timestamp(), "PT24H") # Token valid for 24 hours
 }
-
-variable "avd_registration_token" {
-  type        = string
-  description = "The token used to register session hosts with AVD"
-  default     = azurerm_virtual_desktop_host_pool_registration_info.token.token
-}
