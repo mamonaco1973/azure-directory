@@ -16,9 +16,16 @@ resource "azurerm_storage_container" "scripts" {
 
 # --- Local variable block for injecting values into the PowerShell script template ---
 locals {
+  
   ad_join_script = templatefile("./scripts/ad_join.ps1.template", {   # Rendered script content (local variable)
     vault_name  = data.azurerm_key_vault.ad_key_vault.name            # Inject Key Vault name into the script
     domain_fqdn = "mcloud.mikecloud.com"                              # Inject domain name into the script
+  })
+
+  avd_ad_join_script = templatefile("./scripts/avd_ad_join.ps1.template", {   # Rendered script content (local variable)
+    vault_name  = data.azurerm_key_vault.ad_key_vault.name            # Inject Key Vault name into the script
+    domain_fqdn = "mcloud.mikecloud.com",                             # Inject domain name into the script
+    token = azurerm_virtual_desktop_host_pool_registration_info.token.token # AVD token
   })
 }
 
@@ -28,6 +35,13 @@ resource "local_file" "ad_join_rendered" {
   content  = local.ad_join_script            # Use content from the templatefile rendered in locals
 }
 
+# --- Save the rendered PowerShell script to a local file ---
+resource "local_file" "avd_ad_join_rendered" {
+  filename = "./scripts/avd_ad_join.ps1"         # Save rendered script as 'avd_ad_join.ps1'
+  content  = local.avd_ad_join_script            # Use content from the templatefile rendered in locals
+}
+
+
 # --- Upload the rendered PowerShell script into the storage container ---
 resource "azurerm_storage_blob" "ad_join_script" {
   name                   = "ad-join.ps1"                                 # Name of the blob (file name in storage)
@@ -35,6 +49,18 @@ resource "azurerm_storage_blob" "ad_join_script" {
   storage_container_name = azurerm_storage_container.scripts.name        # Place in the 'scripts' container
   type                   = "Block"                                       # Blob type (most common type for files)
   source                 = local_file.ad_join_rendered.filename          # Source file to upload (rendered script)
+  metadata = {
+    force_update = "${timestamp()}"   # This forces re-upload every time
+  }
+}
+
+# --- Upload the rendered PowerShell script into the storage container ---
+resource "azurerm_storage_blob" "avd_ad_join_script" {
+  name                   = "avd-ad-join.ps1"                             # Name of the blob (file name in storage)
+  storage_account_name   = azurerm_storage_account.scripts_storage.name  # Link to storage account by name
+  storage_container_name = azurerm_storage_container.scripts.name        # Place in the 'scripts' container
+  type                   = "Block"                                       # Blob type (most common type for files)
+  source                 = local_file.avd_ad_join_rendered.filename      # Source file to upload (rendered script)
   metadata = {
     force_update = "${timestamp()}"   # This forces re-upload every time
   }

@@ -5,3 +5,4 @@
 *.terraform.*
 *.pem
 ad_join.ps1
+avd_ad_join.ps1
