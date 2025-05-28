@@ -23,7 +23,7 @@ fi
 
 # Check if the group already exists
 existing_group=$(az ad group show --group "AAD DC Administrators" --query "id" -o tsv 2>/dev/null || true)
-echo $existing_group
+#echo $existing_group
 
 if [[ -z "$existing_group" ]]; then
     echo "WARNING: Group 'AAD DC Administrators' does not exist. Creating it now..."
