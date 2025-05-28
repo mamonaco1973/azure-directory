@@ -38,6 +38,91 @@ resource "azurerm_role_assignment" "avd_user_access" {
 }
 
 resource "azurerm_virtual_desktop_host_pool_registration_info" "token" {
-  hostpool_id = azurerm_virtual_desktop_host_pool.avd_host_pool.id
-  expiration_date  = timeadd(timestamp(), "24h") # Token valid for 24 hours
+  hostpool_id     = azurerm_virtual_desktop_host_pool.avd_host_pool.id
+  expiration_date = timeadd(timestamp(), "24h")
 }
+
+resource "azurerm_network_interface" "avd_nic" {
+  count               = var.session_host_count
+  name                = "avd-nic-${count.index}"
+  location            = data.azurerm_resource_group.ad.location
+  resource_group_name = data.azurerm_resource_group.ad.name
+
+  ip_configuration {
+    name                          = "internal"
+    subnet_id                     = data.azurerm_subnet.vm_subnet.id
+    private_ip_address_allocation = "Dynamic"
+  }
+}
+
+resource "azurerm_windows_virtual_machine" "avd_session_host" {
+  count               = var.session_host_count
+  name                = "avd-session-${count.index}"
+  location            = data.azurerm_resource_group.ad.location
+  resource_group_name = data.azurerm_resource_group.ad.name
+  size                = "Standard_D2s_v3"
+  admin_username      = "adminuser"                                
+  admin_password      = random_password.win_adminuser_password.result 
+
+  network_interface_ids = [azurerm_network_interface.avd_nic[count.index].id]
+
+  os_disk {
+    caching              = "ReadWrite"
+    storage_account_type = "Standard_LRS"
+  }
+
+  source_image_reference {
+    publisher = "MicrosoftWindowsDesktop"
+    offer     = "windows-11"
+    sku       = "win11-22h2-avd"
+    version   = "latest"
+  }
+
+  identity {
+    type = "SystemAssigned"
+  }
+
+  tags = {
+    Role = "AVD-SessionHost"
+  }
+}
+
+variable "session_host_count" {
+  type        = number
+  default     = 1
+  description = "Number of AVD session host VMs to deploy"
+}
+
+resource "azurerm_virtual_machine_extension" "register_avd_host" {
+  count               = var.session_host_count
+  name                = "register-avd-host-${count.index}"
+  virtual_machine_id  = azurerm_windows_virtual_machine.avd_session_host[count.index].id
+  publisher           = "Microsoft.Compute"
+  type                = "CustomScriptExtension"
+  type_handler_version = "1.10"
+
+  settings = jsonencode({
+    "commandToExecute" = "powershell.exe -ExecutionPolicy Bypass -Command \"Register-RDAgent -Token '${azurerm_virtual_desktop_host_pool_registration_info.token.token}'\""
+  })
+
+  depends_on = [azurerm_windows_virtual_machine.avd_session_host]
+}
+
+resource "azurerm_virtual_machine_extension" "join_domain" {
+  count               = var.session_host_count
+  name                = "domain-join-${count.index}"
+  virtual_machine_id  = azurerm_windows_virtual_machine.avd_session_host[count.index].id
+  publisher           = "Microsoft.Compute"
+  type                = "CustomScriptExtension"
+  type_handler_version = "1.10"
+
+  settings = jsonencode({
+    fileUris = [
+      "https://${azurerm_storage_account.scripts_storage.name}.blob.core.windows.net/${azurerm_storage_container.scripts.name}/${azurerm_storage_blob.ad_join_script.name}?${data.azurerm_storage_account_sas.script_sas.sas}"
+    ],
+    commandToExecute = "powershell.exe -ExecutionPolicy Unrestricted -File ad-join.ps1 *>> C:\\WindowsAzure\\Logs\\ad-join.log"
+  })
+
+  depends_on = [azurerm_windows_virtual_machine.avd_session_host]
+}
+
