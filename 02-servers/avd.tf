@@ -93,6 +93,15 @@ variable "session_host_count" {
   description = "Number of AVD session host VMs to deploy"
 }
 
+
+resource "azurerm_role_assignment" "sessionhost_key_vault_secrets_user" {
+  count                = var.session_host_count
+  scope                = data.azurerm_key_vault.ad_key_vault.id
+  role_definition_name = "Key Vault Secrets User"
+  principal_id         = azurerm_windows_virtual_machine.avd_session_host[count.index].identity[0].principal_id
+}
+
+
 # resource "azurerm_virtual_machine_extension" "register_avd_host" {
 #   count               = var.session_host_count
 #   name                = "register-avd-host-${count.index}"
