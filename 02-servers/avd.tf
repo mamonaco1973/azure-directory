@@ -93,7 +93,6 @@ variable "session_host_count" {
   description = "Number of AVD session host VMs to deploy"
 }
 
-
 resource "azurerm_role_assignment" "sessionhost_key_vault_secrets_user" {
   count                = var.session_host_count
   scope                = data.azurerm_key_vault.ad_key_vault.id
@@ -101,37 +100,21 @@ resource "azurerm_role_assignment" "sessionhost_key_vault_secrets_user" {
   principal_id         = azurerm_windows_virtual_machine.avd_session_host[count.index].identity[0].principal_id
 }
 
+resource "azurerm_virtual_machine_extension" "join_domain" {
+  count               = var.session_host_count
+  name                = "domain-join-${count.index}"
+  virtual_machine_id  = azurerm_windows_virtual_machine.avd_session_host[count.index].id
+  publisher           = "Microsoft.Compute"
+  type                = "CustomScriptExtension"
+  type_handler_version = "1.10"
 
-# resource "azurerm_virtual_machine_extension" "register_avd_host" {
-#   count               = var.session_host_count
-#   name                = "register-avd-host-${count.index}"
-#   virtual_machine_id  = azurerm_windows_virtual_machine.avd_session_host[count.index].id
-#   publisher           = "Microsoft.Compute"
-#   type                = "CustomScriptExtension"
-#   type_handler_version = "1.10"
+  settings = jsonencode({
+    fileUris = [
+      "https://${azurerm_storage_account.scripts_storage.name}.blob.core.windows.net/${azurerm_storage_container.scripts.name}/${azurerm_storage_blob.avd_ad_join_script.name}?${data.azurerm_storage_account_sas.script_sas.sas}"
+    ],
+    commandToExecute = "powershell.exe -ExecutionPolicy Unrestricted -File ad-join.ps1 *>> C:\\WindowsAzure\\Logs\\ad-join.log"
+  })
 
-#   settings = jsonencode({
-#     "commandToExecute" = "powershell.exe -ExecutionPolicy Bypass -Command \"Register-RDAgent -Token '${azurerm_virtual_desktop_host_pool_registration_info.token.token}'\""
-#   })
-
-#   depends_on = [azurerm_windows_virtual_machine.avd_session_host]
-# }
-
-# resource "azurerm_virtual_machine_extension" "join_domain" {
-#   count               = var.session_host_count
-#   name                = "domain-join-${count.index}"
-#   virtual_machine_id  = azurerm_windows_virtual_machine.avd_session_host[count.index].id
-#   publisher           = "Microsoft.Compute"
-#   type                = "CustomScriptExtension"
-#   type_handler_version = "1.10"
-
-#   settings = jsonencode({
-#     fileUris = [
-#       "https://${azurerm_storage_account.scripts_storage.name}.blob.core.windows.net/${azurerm_storage_container.scripts.name}/${azurerm_storage_blob.ad_join_script.name}?${data.azurerm_storage_account_sas.script_sas.sas}"
-#     ],
-#     commandToExecute = "powershell.exe -ExecutionPolicy Unrestricted -File ad-join.ps1 *>> C:\\WindowsAzure\\Logs\\ad-join.log"
-#   })
-
-#   depends_on = [azurerm_windows_virtual_machine.avd_session_host]
-# }
+  depends_on = [azurerm_windows_virtual_machine.avd_session_host]
+}
 

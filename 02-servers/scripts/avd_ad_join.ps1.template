@@ -69,7 +69,9 @@ while ($retryCount -lt $maxRetries) {
 # Final Reboot to Apply any changes.
 # ------------------------------------------------------------
 
-Register-RDAgent -Token '${token}'
+$token = "${token}"
+New-Item -Path "HKLM:\SOFTWARE\Microsoft\RDInfraAgent" -Force
+Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\RDInfraAgent" -Name "RegistrationToken" -Value $token
 
 Write-Output "Add users to the Remote Desktop Users Group"
 Add-LocalGroupMember -Group "Remote Desktop Users" -Member "mcloud-users"
