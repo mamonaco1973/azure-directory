@@ -115,6 +115,6 @@ resource "azurerm_virtual_machine_extension" "join_domain" {
     commandToExecute = "powershell.exe -ExecutionPolicy Unrestricted -File ad-join.ps1 *>> C:\\WindowsAzure\\Logs\\ad-join.log"
   })
 
-  depends_on = [azurerm_windows_virtual_machine.avd_session_host]
+  depends_on = [azurerm_windows_virtual_machine.avd_session_host,azurerm_virtual_machine_extension.join_script]
 }
 
