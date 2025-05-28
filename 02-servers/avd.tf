@@ -112,9 +112,9 @@ resource "azurerm_virtual_machine_extension" "join_domain" {
     fileUris = [
       "https://${azurerm_storage_account.scripts_storage.name}.blob.core.windows.net/${azurerm_storage_container.scripts.name}/${azurerm_storage_blob.avd_ad_join_script.name}?${data.azurerm_storage_account_sas.script_sas.sas}"
     ],
-    commandToExecute = "powershell.exe -ExecutionPolicy Unrestricted -File ad-join.ps1 *>> C:\\WindowsAzure\\Logs\\ad-join.log"
+    commandToExecute = "powershell.exe -ExecutionPolicy Unrestricted -File avd-ad-join.ps1 *>> C:\\WindowsAzure\\Logs\\avd-ad-join.log"
   })
 
-  depends_on = [azurerm_windows_virtual_machine.avd_session_host,azurerm_virtual_machine_extension.join_script]
+  depends_on = [azurerm_windows_virtual_machine.avd_session_host,azurerm_virtual_machine_extension.join_script,azurerm_role_assignment.sessionhost_key_vault_secrets_user]
 }
 
