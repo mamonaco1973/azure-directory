@@ -66,12 +66,39 @@ while ($retryCount -lt $maxRetries) {
 }
 
 # ------------------------------------------------------------
-# Final Reboot to Apply any changes.
+# Install AVD agent and bootloader
 # ------------------------------------------------------------
 
 $token = "${token}"
-New-Item -Path "HKLM:\SOFTWARE\Microsoft\RDInfraAgent" -Force
-Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\RDInfraAgent" -Name "RegistrationToken" -Value $token
+$installPath = "C:\AVDInstall"
+$agentUrl = "https://go.microsoft.com/fwlink/?linkid=2310011"
+$bootloaderUrl = "https://go.microsoft.com/fwlink/?linkid=2311028"
+
+# Create install directory
+New-Item -ItemType Directory -Path $installPath -Force | Out-Null
+Set-Location $installPath
+
+# Download AVD Agent
+Write-Host "Downloading AVD Agent..."
+Invoke-WebRequest -Uri $agentUrl -OutFile "avd-agent.msi"
+
+# Download Bootloader
+Write-Host "Downloading AVD Bootloader..."
+Invoke-WebRequest -Uri $bootloaderUrl -OutFile "avd-bootloader.msi"
+
+# Install AVD Agent with registration token
+Write-Host "Installing AVD Agent..."
+Start-Process msiexec.exe -ArgumentList "/i `"avd-agent.msi`" /quiet /qn /norestart REGISTRATIONTOKEN=$token" -Wait
+
+# Install AVD Bootloader
+Write-Host "Installing Bootloader..."
+Start-Process msiexec.exe -ArgumentList "/i `"avd-bootloader.msi`" /quiet /qn /norestart" -Wait
+
+Write-Host "AVD agent and bootloader installed successfully."
+
+# ------------------------------------------------------------
+# Add users to remote desktop group
+# ------------------------------------------------------------
 
 Write-Output "Add users to the Remote Desktop Users Group"
 Add-LocalGroupMember -Group "Remote Desktop Users" -Member "mcloud-users"
