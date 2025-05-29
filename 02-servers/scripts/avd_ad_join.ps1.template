@@ -88,11 +88,13 @@ Invoke-WebRequest -Uri $bootloaderUrl -OutFile "avd-bootloader.msi"
 
 # Install AVD Agent with registration token
 Write-Host "Installing AVD Agent..."
-Start-Process msiexec.exe -ArgumentList "/i `"avd-agent.msi`" /quiet /qn /norestart REGISTRATIONTOKEN=$token" -Wait
+Start-Process msiexec.exe -ArgumentList "/i", "avd-agent.msi", "/quiet", "/qn", "/norestart", "REGISTRATIONTOKEN=$token" -Wait
+#Start-Process msiexec.exe -ArgumentList "/i `"avd-agent.msi`" /quiet /qn /norestart REGISTRATIONTOKEN=$token" -Wait
 
 # Install AVD Bootloader
 Write-Host "Installing Bootloader..."
-Start-Process msiexec.exe -ArgumentList "/i `"avd-bootloader.msi`" /quiet /qn /norestart" -Wait
+Start-Process msiexec.exe -ArgumentList "/i", "avd-bootloader.msi", "/quiet", "/qn", "/norestart" -Wait
+#Start-Process msiexec.exe -ArgumentList "/i `"avd-bootloader.msi`" /quiet /qn /norestart" -Wait
 
 Write-Host "AVD agent and bootloader installed successfully."
 
