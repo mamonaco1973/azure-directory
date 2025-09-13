@@ -12,7 +12,7 @@ resource "azurerm_key_vault" "ad_key_vault" {
   sku_name                    = "standard"
   tenant_id                   = data.azurerm_client_config.current.tenant_id
   purge_protection_enabled    = false
-  enable_rbac_authorization   = true
+  rbac_authorization_enabled  = true
 }
 
 # Assign RBAC role to the current client for managing secrets
