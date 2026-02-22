@@ -1,76 +1,114 @@
-# Define a network security group for the Azure Bastion
+# ==============================================================================
+# Azure Bastion Deployment (Conditional)
+# ------------------------------------------------------------------------------
+# Purpose:
+#   - Deploys Azure Bastion only when var.bastion_support == true.
+#   - Uses count to conditionally create all Bastion-related resources.
+#
+# Usage:
+#   variable "bastion_support" {
+#     type    = bool
+#     default = false
+#   }
+#
+# Notes:
+#   - When bastion_support = false, no Bastion resources are created.
+#   - References to counted resources must use index [0].
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Network Security Group for Azure Bastion (Conditional)
+# ------------------------------------------------------------------------------
 resource "azurerm_network_security_group" "bastion-nsg" {
-  name                = "bastion-nsg"                                 # Name of the NSG
-  location            = azurerm_resource_group.ad.location            # Azure region
-  resource_group_name = azurerm_resource_group.ad.name                # Resource group for the NSG
+  count               = var.bastion_support ? 1 : 0
+  name                = "bastion-nsg"
+  location            = azurerm_resource_group.ad.location
+  resource_group_name = azurerm_resource_group.ad.name
 
   security_rule {
-    name                       = "GatewayManager"                     # Rule name: Gateway Manager
-    priority                   = 1001                                 # Rule priority
-    direction                  = "Inbound"                            # Traffic direction
-    access                     = "Allow"                              # Allow or deny rule
-    protocol                   = "Tcp"                                # Protocol type
-    source_port_range          = "*"                                  # Source port range
-    destination_port_range     = "443"                                # Destination port
-    source_address_prefix      = "GatewayManager"                     # Source address prefix
-    destination_address_prefix = "*"                                  # Destination address prefix
+    name                       = "GatewayManager"
+    priority                   = 1001
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "443"
+    source_address_prefix      = "GatewayManager"
+    destination_address_prefix = "*"
   }
 
   security_rule {
-    name                       = "Internet-Bastion-PublicIP"          # Rule name: Public IP for Bastion
-    priority                   = 1002                                 # Rule priority
-    direction                  = "Inbound"                            # Traffic direction
-    access                     = "Allow"                              # Allow or deny rule
-    protocol                   = "Tcp"                                # Protocol type
-    source_port_range          = "*"                                  # Source port range
-    destination_port_range     = "443"                                # Destination port
-    source_address_prefix      = "*"                                  # Source address range
-    destination_address_prefix = "*"                                  # Destination address range
+    name                       = "Internet-Bastion-PublicIP"
+    priority                   = 1002
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "443"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
   }
 
   security_rule {
-    name                       = "OutboundVirtualNetwork"             # Rule name: Outbound to Virtual Network
-    priority                   = 1001                                 # Rule priority
-    direction                  = "Outbound"                           # Traffic direction
-    access                     = "Allow"                              # Allow or deny rule
-    protocol                   = "Tcp"                                # Protocol type
-    source_port_range          = "*"                                  # Source port range
-    destination_port_ranges    = ["22", "3389"]                       # Destination ports for outbound traffic
-    source_address_prefix      = "*"                                  # Source address range
-    destination_address_prefix = "VirtualNetwork"                     # Destination address prefix
+    name                       = "OutboundVirtualNetwork"
+    priority                   = 1001
+    direction                  = "Outbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_ranges    = ["22", "3389"]
+    source_address_prefix      = "*"
+    destination_address_prefix = "VirtualNetwork"
   }
 
   security_rule {
-    name                       = "OutboundToAzureCloud"               # Rule name: Outbound to Azure Cloud
-    priority                   = 1002                                 # Rule priority
-    direction                  = "Outbound"                           # Traffic direction
-    access                     = "Allow"                              # Allow or deny rule
-    protocol                   = "Tcp"                                # Protocol type
-    source_port_range          = "*"                                  # Source port range
-    destination_port_range     = "443"                                # Destination port
-    source_address_prefix      = "*"                                  # Source address range
-    destination_address_prefix = "AzureCloud"                         # Destination address prefix
+    name                       = "OutboundToAzureCloud"
+    priority                   = 1002
+    direction                  = "Outbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "443"
+    source_address_prefix      = "*"
+    destination_address_prefix = "AzureCloud"
   }
 }
 
-# Create a Public IP for the Bastion host
+# ------------------------------------------------------------------------------
+# Subnet: Azure Bastion subnet (Conditional)
+# ------------------------------------------------------------------------------
+resource "azurerm_subnet" "bastion_subnet" {
+  count                = var.bastion_support ? 1 : 0
+  name                 = "AzureBastionSubnet"
+  resource_group_name  = azurerm_resource_group.ad.name
+  virtual_network_name = azurerm_virtual_network.ad_vnet.name
+  address_prefixes     = ["10.0.1.0/25"]
+}
+
+# ------------------------------------------------------------------------------
+# Public IP for Azure Bastion (Conditional)
+# ------------------------------------------------------------------------------
 resource "azurerm_public_ip" "bastion-ip" {
-  name                = "bastion-public-ip"                           # Name of the public IP
-  location            = azurerm_resource_group.ad.location            # Azure region
-  resource_group_name = azurerm_resource_group.ad.name                # Resource group for the public IP
-  allocation_method   = "Static"                                      # Allocation method for the public IP
-  sku                 = "Standard"                                    # Required for Azure Bastion
+  count               = var.bastion_support ? 1 : 0
+  name                = "bastion-public-ip"
+  location            = azurerm_resource_group.ad.location
+  resource_group_name = azurerm_resource_group.ad.name
+  allocation_method   = "Static"
+  sku                 = "Standard"
 }
 
-# Create the Azure Bastion resource
+# ------------------------------------------------------------------------------
+# Azure Bastion Host (Conditional)
+# ------------------------------------------------------------------------------
 resource "azurerm_bastion_host" "bastion-host" {
-  name                = "bastion-host"                                # Name of the Bastion host
-  location            = azurerm_resource_group.ad.location            # Azure region
-  resource_group_name = azurerm_resource_group.ad.name                # Resource group for the Bastion host
+  count               = var.bastion_support ? 1 : 0
+  name                = "bastion-host"
+  location            = azurerm_resource_group.ad.location
+  resource_group_name = azurerm_resource_group.ad.name
 
   ip_configuration {
-    name                 = "bastion-ip-config"                        # Name of the IP configuration
-    subnet_id            = azurerm_subnet.bastion_subnet.id           # Subnet for the Bastion host
-    public_ip_address_id = azurerm_public_ip.bastion-ip.id            # Public IP associated with the Bastion host
+    name                 = "bastion-ip-config"
+    subnet_id            = azurerm_subnet.bastion_subnet[0].id
+    public_ip_address_id = azurerm_public_ip.bastion-ip[0].id
   }
 }

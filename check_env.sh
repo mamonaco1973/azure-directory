@@ -1,83 +1,116 @@
 #!/bin/bash
+# ==============================================================================
+# check_env.sh
+# ------------------------------------------------------------------------------
+# Purpose:
+#   - Validates required CLI tools are available.
+#   - Ensures required Azure Service Principal environment variables are set.
+#   - Logs into Azure using the provided Service Principal credentials.
+#   - Verifies required Entra ID role access.
+#   - Ensures AADDS service principal exists.
+#   - Registers Microsoft.AAD resource provider (waits until ready).
+#
+# Notes:
+#   - Script exits immediately on any failure.
+#   - Designed to be called before Terraform apply orchestration.
+# ==============================================================================
 
+set -euo pipefail
+
+# ------------------------------------------------------------------------------
+# Validate required CLI commands
+# ------------------------------------------------------------------------------
 echo "NOTE: Validating that required commands are found in your PATH."
 
-# List of required commands
 commands=("az" "terraform")
 
-# Flag to track if all commands are found
-all_found=true
-
-# Iterate through each command and check if it's available
 for cmd in "${commands[@]}"; do
   if ! command -v "$cmd" &> /dev/null; then
     echo "ERROR: $cmd is not found in the current PATH."
-    all_found=false
+    exit 1
   else
     echo "NOTE: $cmd is found in the current PATH."
   fi
 done
 
-# Final status
-if [ "$all_found" = true ]; then
-  echo "NOTE: All required commands are available."
-else
-  echo "ERROR: One or more commands are missing."
-  exit 1
-fi
+echo "NOTE: All required commands are available."
 
+# ------------------------------------------------------------------------------
+# Validate required environment variables
+# ------------------------------------------------------------------------------
 echo "NOTE: Validating that required environment variables are set."
-# Array of required environment variables
+
 required_vars=("ARM_CLIENT_ID" "ARM_CLIENT_SECRET" "ARM_SUBSCRIPTION_ID" "ARM_TENANT_ID")
 
-# Flag to check if all variables are set
-all_set=true
-
-# Loop through the required variables and check if they are set
 for var in "${required_vars[@]}"; do
-  if [ -z "${!var}" ]; then
+  if [ -z "${!var:-}" ]; then
     echo "ERROR: $var is not set or is empty."
-    all_set=false
+    exit 1
   else
     echo "NOTE: $var is set."
   fi
 done
 
-# Final status
-if [ "$all_set" = true ]; then
-  echo "NOTE: All required environment variables are set."
-else
-  echo "ERROR: One or more required environment variables are missing or empty."
-  exit 1
-fi
+echo "NOTE: All required environment variables are set."
 
+# ------------------------------------------------------------------------------
+# Azure Login (Service Principal)
+# ------------------------------------------------------------------------------
 echo "NOTE: Logging in to Azure using Service Principal..."
-az login --service-principal --username "$ARM_CLIENT_ID" --password "$ARM_CLIENT_SECRET" --tenant "$ARM_TENANT_ID" > /dev/null 2>&1
 
-# Check the return code of the login command
-if [ $? -ne 0 ]; then
-  echo "ERROR: Failed to log into Azure. Please check your credentials and environment variables."
+az login \
+  --service-principal \
+  --username "$ARM_CLIENT_ID" \
+  --password "$ARM_CLIENT_SECRET" \
+  --tenant "$ARM_TENANT_ID" \
+  > /dev/null
+
+echo "NOTE: Successfully logged into Azure."
+
+# ------------------------------------------------------------------------------
+# Validate Global Administrator Role (Entra ID)
+# ------------------------------------------------------------------------------
+echo "NOTE: Validating Entra role assignment (Global Administrator)..."
+
+ROLE_CHECK=$(az rest \
+  --method GET \
+  --url "https://graph.microsoft.com/v1.0/directoryRoles" \
+  --query "value[?displayName=='Global Administrator'].id" \
+  --output tsv)
+
+if [ -z "$ROLE_CHECK" ]; then
+  echo "ERROR: 'Global Administrator' Entra role is NOT active in this tenant."
   exit 1
 else
-  echo "NOTE: Successfully logged into Azure."
+  echo "NOTE: 'Global Administrator' Entra role is present."
 fi
 
-ROLE_CHECK=$(az rest --method GET --url "https://graph.microsoft.com/v1.0/directoryRoles" --query "value[?displayName=='Global Administrator'].id" --output tsv)
-if [ -z "$ROLE_CHECK" ]; then
-    echo "ERROR: 'Global Administrator' entra role is NOT assigned to current service principal."
-    exit 1
-else
-    echo "NOTE: 'Global Administrator' entra role is assigned to current service principal."
-fi
+# ------------------------------------------------------------------------------
+# Ensure AADDS Service Principal Exists
+# ------------------------------------------------------------------------------
+echo "NOTE: Validating AADDS service principal (2565bd9d-da50-47d4-8b85-4c97f669dc36)..."
 
-echo "NOTE: Validating AADS service prinicipal '2565bd9d-da50-47d4-8b85-4c97f669dc36'"
+# Create if missing (no-op if already exists)
+az ad sp create --id "2565bd9d-da50-47d4-8b85-4c97f669dc36" > /dev/null 2>&1 || true
 
-az ad sp create --id "2565bd9d-da50-47d4-8b85-4c97f669dc36" 2> /dev/null
+echo "NOTE: AADDS service principal verified."
 
-az provider register --namespace Microsoft.AAD
+# ------------------------------------------------------------------------------
+# Register Microsoft.AAD Resource Provider
+# ------------------------------------------------------------------------------
+echo "NOTE: Registering Microsoft.AAD resource provider..."
 
-while [[ "$(az provider show --namespace Microsoft.App --query "registrationState" --output tsv)" != "Registered" ]]; do
+az provider register --namespace Microsoft.AAD > /dev/null
+
+# Wait until registration completes
+while [[ "$(az provider show --namespace Microsoft.AAD --query "registrationState" --output tsv)" != "Registered" ]]; do
   echo "NOTE: Waiting for Microsoft.AAD to register..."
   sleep 10
 done
-echo "NOTE: Microsoft.AAD is currently registered!"
+
+echo "NOTE: Microsoft.AAD is registered."
+
+# ------------------------------------------------------------------------------
+# Completed
+# ------------------------------------------------------------------------------
+echo "NOTE: Environment validation completed successfully."

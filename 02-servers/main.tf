@@ -1,59 +1,114 @@
-# --- Configure the AzureRM provider (required for all Azure deployments) ---
+# ==============================================================================
+# Terraform Entry Point (Consumer Module / Data-Driven)
+# ------------------------------------------------------------------------------
+# Purpose:
+#   - Configures the AzureRM provider for this deployment.
+#   - Loads metadata about the active subscription and caller identity.
+#   - References existing infrastructure (Resource Group, Subnet, Key Vault).
+#   - Defines required variables used across dependent modules/resources.
+#
+# Design:
+#   - This file assumes core infrastructure (RG, VNet, Subnet, Vault) already
+#     exists and is being referenced via data sources instead of created.
+#   - Useful for layered deployments or post-bootstrap configuration modules.
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Provider: AzureRM
+# ------------------------------------------------------------------------------
+# Enables provider feature flags affecting Key Vault destroy behavior.
+# ------------------------------------------------------------------------------
 provider "azurerm" {
-  # Enables provider-specific features (can be empty if defaults are fine)
   features {
+    # --------------------------------------------------------------------------
+    # Key Vault lifecycle behavior
+    # --------------------------------------------------------------------------
+    # purge_soft_delete_on_destroy:
+    #   Immediately purges Key Vault on destroy (bypasses retention window).
+    #
+    # recover_soft_deleted_key_vaults:
+    #   Prevents automatic recovery of previously soft-deleted vaults.
+    # --------------------------------------------------------------------------
     key_vault {
-        purge_soft_delete_on_destroy    = true  # When a Key Vault is destroyed, purge it immediately (bypass soft-delete retention)
-        recover_soft_deleted_key_vaults = false # Do NOT auto-recover soft-deleted Key Vaults
+      purge_soft_delete_on_destroy    = true
+      recover_soft_deleted_key_vaults = false
     }
   }
 }
 
-# --- Data source to retrieve details about the subscription being used ---
+# ------------------------------------------------------------------------------
+# Data Source: Active Subscription Metadata
+# ------------------------------------------------------------------------------
+# Retrieves subscription ID, display name, and tenant linkage.
+# ------------------------------------------------------------------------------
 data "azurerm_subscription" "primary" {}
-# This fetches the metadata (like subscription ID and name) for the subscription currently being used by the provider.
 
-# --- Data source to retrieve information about the currently authenticated client ---
+# ------------------------------------------------------------------------------
+# Data Source: Current Authenticated Client
+# ------------------------------------------------------------------------------
+# Returns tenant ID, object ID, and client ID for the identity running Terraform.
+# ------------------------------------------------------------------------------
 data "azurerm_client_config" "current" {}
-# This gets information about the identity Terraform is authenticated as (the Service Principal or User doing the deployment).
 
-# --- Variable to define the Azure Resource Group name ---
+# ------------------------------------------------------------------------------
+# Variable: Resource Group Name
+# ------------------------------------------------------------------------------
+# Defines which existing Resource Group this module should target.
+# ------------------------------------------------------------------------------
 variable "resource_group_name" {
   description = "The name of the Azure resource group"
   type        = string
-  default     = "ad-resource-group"  # Default name if none is provided
+  default     = "ad-resource-group"
 }
 
-# --- Variable for Key Vault name (can be overridden at apply time) ---
+# ------------------------------------------------------------------------------
+# Variable: Existing Key Vault Name
+# ------------------------------------------------------------------------------
+# Required input — must match an already-created Key Vault.
+# ------------------------------------------------------------------------------
 variable "vault_name" {
   description = "The name of the secrets vault"
   type        = string
-#  default     = "ad-key-vault-qcxu2ksw"  # Example default (commented out, so it's explicitly required unless set via CLI or TFVARS)
+  # default  = "ad-key-vault-qcxu2ksw"
 }
 
-# --- Data source to fetch details about the resource group ---
+# ------------------------------------------------------------------------------
+# Data Source: Existing Resource Group
+# ------------------------------------------------------------------------------
+# Loads metadata (location, ID, tags, etc.) for reuse in this module.
+# ------------------------------------------------------------------------------
 data "azurerm_resource_group" "ad" {
-  name = var.resource_group_name  # Use the resource group name from the variable
+  name = var.resource_group_name
 }
-# This allows other resources to refer to the location, ID, etc., of this resource group.
 
-# --- Data source to fetch details about a specific subnet ---
+# ------------------------------------------------------------------------------
+# Data Source: Existing VM Subnet
+# ------------------------------------------------------------------------------
+# Used to attach network interfaces or reference subnet properties.
+# ------------------------------------------------------------------------------
 data "azurerm_subnet" "vm_subnet" {
-  name                 = "vm-subnet"                         # Name of the subnet
-  resource_group_name  = data.azurerm_resource_group.ad.name # Subnet's resource group (same as main RG)
-  virtual_network_name = "ad-vnet"                           # Name of the virtual network the subnet belongs to
+  name                 = "vm-subnet"
+  resource_group_name  = data.azurerm_resource_group.ad.name
+  virtual_network_name = "ad-vnet"
 }
-# This lets Terraform reference the subnet for VM network interfaces, etc.
 
-# --- Data source to fetch details about the existing Key Vault ---
+# ------------------------------------------------------------------------------
+# Data Source: Existing Key Vault
+# ------------------------------------------------------------------------------
+# Enables secret creation or retrieval without recreating the vault.
+# ------------------------------------------------------------------------------
 data "azurerm_key_vault" "ad_key_vault" {
-  name                = var.vault_name                      # Key Vault name provided via variable
-  resource_group_name = var.resource_group_name             # Key Vault must be in the same resource group
+  name                = var.vault_name
+  resource_group_name = var.resource_group_name
 }
-# This allows other resources (like secrets) to link to this Key Vault.
 
+# ------------------------------------------------------------------------------
+# Variable: Default Azure AD Domain (Tenant Domain)
+# ------------------------------------------------------------------------------
+# Used for constructing UPN values (e.g., admin@tenant.onmicrosoft.com).
+# Typically supplied via tfvars or automation.
+# ------------------------------------------------------------------------------
 variable "azure_domain" {
   description = "The default Azure AD domain"
-#  default     = "mamonaco1973gmail.onmicrosoft.com"
+  # default  = "mamonaco1973gmail.onmicrosoft.com"
 }
-

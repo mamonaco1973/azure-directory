@@ -1,87 +1,124 @@
-# --- Storage account to hold deployment scripts ---
+# ==============================================================================
+# Storage: Script Staging (PowerShell AD Join)
+# ------------------------------------------------------------------------------
+# Purpose:
+#   - Creates a dedicated Azure Storage Account + private container to stage
+#     deployment scripts.
+#   - Renders a PowerShell script from a template (injecting environment values),
+#     writes it locally, then uploads it as a blob.
+#   - Generates a short-lived SAS token allowing read-only access to the blob.
+#
+# Notes:
+#   - Storage Account names must be globally unique and use lower-case letters
+#     and numbers only; random_string is used to ensure uniqueness.
+#   - The blob metadata "force_update" includes timestamp() to force Terraform
+#     to re-upload even when the local content does not appear to change.
+#   - SAS start time is set 24 hours in the past to reduce clock-skew issues.
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Random Suffix: Storage Account name uniqueness
+# ------------------------------------------------------------------------------
+resource "random_string" "storage_name" {
+  length  = 10
+  upper   = false
+  special = false
+  numeric = true
+}
+
+# ------------------------------------------------------------------------------
+# Storage Account: Holds staged deployment scripts
+# ------------------------------------------------------------------------------
 resource "azurerm_storage_account" "scripts_storage" {
-  name                     = "vmscripts${random_string.storage_name.result}" # Storage account name with random suffix to ensure uniqueness
-  resource_group_name      = data.azurerm_resource_group.ad.name              # Place it in the existing resource group
-  location                 = data.azurerm_resource_group.ad.location          # Use the same location as the resource group
-  account_tier             = "Standard"                                       # Standard tier (cost-effective option)
-  account_replication_type = "LRS"                                            # Locally redundant storage (replicated within a single region)
+  name                     = "vmscripts${random_string.storage_name.result}"
+  resource_group_name      = data.azurerm_resource_group.ad.name
+  location                 = data.azurerm_resource_group.ad.location
+  account_tier             = "Standard"
+  account_replication_type = "LRS"
 }
 
-# --- Container inside the storage account to hold the actual scripts ---
+# ------------------------------------------------------------------------------
+# Storage Container: Private container for scripts
+# ------------------------------------------------------------------------------
 resource "azurerm_storage_container" "scripts" {
-  name                  = "scripts"                                   # Container name
-  storage_account_id    = azurerm_storage_account.scripts_storage.id  # Link to the storage account
-  container_access_type = "private"                                   # Private container (no anonymous access)
+  name                  = "scripts"
+  storage_account_id    = azurerm_storage_account.scripts_storage.id
+  container_access_type = "private"
 }
 
-# --- Local variable block for injecting values into the PowerShell script template ---
+# ------------------------------------------------------------------------------
+# Locals: Render AD join PowerShell script from template
+# ------------------------------------------------------------------------------
+# templatefile() injects runtime values into ./scripts/ad_join.ps1.template and
+# produces the final script content as a local variable.
+# ------------------------------------------------------------------------------
 locals {
-  ad_join_script = templatefile("./scripts/ad_join.ps1.template", {   # Rendered script content (local variable)
-    vault_name  = data.azurerm_key_vault.ad_key_vault.name            # Inject Key Vault name into the script
-    domain_fqdn = "mcloud.mikecloud.com"                              # Inject domain name into the script
+  ad_join_script = templatefile("./scripts/ad_join.ps1.template", {
+    vault_name  = data.azurerm_key_vault.ad_key_vault.name
+    domain_fqdn = "mcloud.mikecloud.com"
   })
 }
 
-# --- Save the rendered PowerShell script to a local file ---
+# ------------------------------------------------------------------------------
+# Local File: Write rendered script to disk for upload
+# ------------------------------------------------------------------------------
 resource "local_file" "ad_join_rendered" {
-  filename = "./scripts/ad_join.ps1"         # Save rendered script as 'ad_join.ps1'
-  content  = local.ad_join_script            # Use content from the templatefile rendered in locals
+  filename = "./scripts/ad_join.ps1"
+  content  = local.ad_join_script
 }
 
-# --- Upload the rendered PowerShell script into the storage container ---
+# ------------------------------------------------------------------------------
+# Storage Blob: Upload rendered script to the scripts container
+# ------------------------------------------------------------------------------
+# metadata.force_update uses timestamp() to ensure Terraform detects a change
+# and re-uploads the blob on each apply when desired.
+# ------------------------------------------------------------------------------
 resource "azurerm_storage_blob" "ad_join_script" {
-  name                   = "ad-join.ps1"                                 # Name of the blob (file name in storage)
-  storage_account_name   = azurerm_storage_account.scripts_storage.name  # Link to storage account by name
-  storage_container_name = azurerm_storage_container.scripts.name        # Place in the 'scripts' container
-  type                   = "Block"                                       # Blob type (most common type for files)
-  source                 = local_file.ad_join_rendered.filename          # Source file to upload (rendered script)
+  name                   = "ad-join.ps1"
+  storage_account_name   = azurerm_storage_account.scripts_storage.name
+  storage_container_name = azurerm_storage_container.scripts.name
+  type                   = "Block"
+  source                 = local_file.ad_join_rendered.filename
   metadata = {
-    force_update = "${timestamp()}"   # This forces re-upload every time
+    force_update = "${timestamp()}"
   }
 }
 
-# --- Generate a random string for use in the storage account name ---
-resource "random_string" "storage_name" {
-  length  = 10     # 10 characters long
-  upper   = false  # No uppercase letters
-  special = false  # No special characters
-  numeric = true   # Include numbers
-}
-
-# --- Generate a short-lived SAS token for accessing the uploaded script ---
+# ------------------------------------------------------------------------------
+# SAS Token: Short-lived, read-only access to the uploaded script
+# ------------------------------------------------------------------------------
+# Generates a SAS token permitting object-level read access for blobs only.
+# Start time is set to -24h to avoid failures due to clock skew.
+# ------------------------------------------------------------------------------
 data "azurerm_storage_account_sas" "script_sas" {
   connection_string = azurerm_storage_account.scripts_storage.primary_connection_string
-  # Use the primary connection string to generate the SAS token
 
   resource_types {
-    service   = false # Not granting service-level permissions
-    container = false # Not granting container-level permissions
-    object    = true  # Grant object-level permissions (this is the script itself)
+    service   = false
+    container = false
+    object    = true
   }
 
   services {
-    blob   = true  # This is a blob (file), so allow blob-level service access
-    queue  = false # No queue access needed
-    table  = false # No table access needed
-    file   = false # No file share access needed
+    blob  = true
+    queue = false
+    table = false
+    file  = false
   }
 
   start  = formatdate("YYYY-MM-DD'T'HH:mm:ss'Z'", timeadd(timestamp(), "-24h"))
   expiry = formatdate("YYYY-MM-DD'T'HH:mm:ss'Z'", timeadd(timestamp(), "72h"))
 
-  #start  = formatdate("YYYY-MM-DD'T'HH:mm:ss'Z'", timestamp())                 # Start time (now)
-  #expiry = formatdate("YYYY-MM-DD'T'HH:mm:ss'Z'", timeadd(timestamp(), "24h")) # Expire after 24 hours
-
   permissions {
-    read    = true   # Allow read access (needed to download the script)
-    write   = false  # Do not allow writing
-    delete  = false  # Do not allow deletion
-    list    = false  # Do not allow listing
-    add     = false  # Do not allow adding files
-    create  = false  # Do not allow file creation
-    update  = false  # Do not allow updating existing files
-    process = false  # Not applicable to blobs
-    filter  = false  # Not applicable to blobs
-    tag     = false  # No need for tagging permissions
+    read    = true
+    write   = false
+    delete  = false
+    list    = false
+    add     = false
+    create  = false
+    update  = false
+    process = false
+    filter  = false
+    tag     = false
   }
 }
