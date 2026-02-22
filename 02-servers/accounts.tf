@@ -3,18 +3,24 @@
 # ------------------------------------------------------------------------------
 # Purpose:
 #   - Generates a strong password for the managed domain administrator.
-#   - Stores administrator credentials securely in Azure Key Vault.
-#   - Creates an Azure AD user for the managed domain admin account.
+#   - Creates a unique Azure AD admin user per deployment to avoid AAD soft-delete
+#     / eventual consistency collisions during rapid rebuild cycles.
+#   - Stores administrator credentials securely in Azure Key Vault as JSON.
 #   - Adds the user to the "AAD DC Administrators" group required for AADDS.
 #
 # Notes:
-#   - The Azure AD user must exist and be a member of "AAD DC Administrators"
-#     before Azure AD Domain Services (AADDS) can grant domain admin rights.
+#   - Azure AD user objects are often soft-deleted and may not be reusable
+#     immediately. Using a unique UPN per run avoids conflicts when builds are
+#     executed back-to-back.
 #   - Password is generated once and reused for:
 #       * Azure AD user creation
 #       * Key Vault secret storage
-#   - The Key Vault secret is stored as JSON for easy consumption by
-#     automation scripts (cloud-init, bootstrap scripts, etc.).
+#   - The Key Vault secret is stored as JSON for easy consumption by automation.
+# ==============================================================================
+#
+# Outputs / Contracts:
+#   - Secret name: admin-ad-credentials
+#   - Secret JSON: { "username": "<upn>", "password": "<password>" }
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
@@ -30,19 +36,26 @@ resource "random_password" "admin_password" {
 }
 
 # ------------------------------------------------------------------------------
-# Key Vault Secret: AD Admin Credentials
+# Random ID: Unique Suffix for Admin UPN
 # ------------------------------------------------------------------------------
-# Stores the administrator username/password as a JSON object.
-# Username format matches Azure AD UPN.
+# Ensures the Azure AD user principal name is unique per build to avoid conflicts
+# with soft-deleted users during rapid destroy/apply cycles.
 # ------------------------------------------------------------------------------
-resource "azurerm_key_vault_secret" "admin_secret" {
-  name = "admin-ad-credentials"
-  value = jsonencode({
-    username = "mcloud-admin@${var.azure_domain}"
-    password = random_password.admin_password.result
-  })
-  key_vault_id = data.azurerm_key_vault.ad_key_vault.id
-  content_type = "application/json"
+resource "random_id" "admin_suffix" {
+  byte_length = 3
+}
+
+# ------------------------------------------------------------------------------
+# Locals: Admin Identity
+# ------------------------------------------------------------------------------
+# Builds a unique UPN while keeping display_name consistent for readability.
+# Example UPN:
+#   mcloud-admin-a1b2c3@contoso.onmicrosoft.com
+# ------------------------------------------------------------------------------
+locals {
+  admin_upn          = "mcloud-admin-${random_id.admin_suffix.hex}@${var.azure_domain}"
+  admin_display_name = "mcloud-admin"
+  admin_secret_name  = "admin-ad-credentials"
 }
 
 # ------------------------------------------------------------------------------
@@ -51,8 +64,8 @@ resource "azurerm_key_vault_secret" "admin_secret" {
 # Creates the cloud identity that will become an AADDS domain administrator.
 # ------------------------------------------------------------------------------
 resource "azuread_user" "mcloud_admin" {
-  user_principal_name = "mcloud-admin@${var.azure_domain}"
-  display_name        = "mcloud-admin"
+  user_principal_name = local.admin_upn
+  display_name        = local.admin_display_name
   password            = random_password.admin_password.result
 }
 
@@ -74,4 +87,20 @@ data "azuread_group" "dc_admins" {
 resource "azuread_group_member" "mcloud_admin_member" {
   group_object_id  = data.azuread_group.dc_admins.object_id
   member_object_id = azuread_user.mcloud_admin.object_id
+}
+
+# ------------------------------------------------------------------------------
+# Key Vault Secret: AD Admin Credentials
+# ------------------------------------------------------------------------------
+# Stores the administrator username/password as a JSON object.
+# Username format matches Azure AD UPN.
+# ------------------------------------------------------------------------------
+resource "azurerm_key_vault_secret" "admin_secret" {
+  name = local.admin_secret_name
+  value = jsonencode({
+    username = local.admin_upn
+    password = random_password.admin_password.result
+  })
+  key_vault_id = data.azurerm_key_vault.ad_key_vault.id
+  content_type = "application/json"
 }
